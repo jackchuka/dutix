@@ -1,0 +1,478 @@
+version: "1.0"
+created_at: 2026-01-11T15:43:58.903678+09:00
+items:
+    - target:
+        kind: extension
+        identifier: txt
+        resolved_utis:
+            - public.plain-text
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: md
+        resolved_utis:
+            - net.daringfireball.markdown
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: markdown
+        resolved_utis:
+            - net.daringfireball.markdown
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: rtf
+        resolved_utis:
+            - public.rtf
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: log
+        resolved_utis:
+            - com.apple.log
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: json
+        resolved_utis:
+            - public.json
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: yaml
+        resolved_utis:
+            - public.yaml
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: yml
+        resolved_utis:
+            - public.yaml
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: xml
+        resolved_utis:
+            - public.xml
+            - com.microsoft.word.wordml
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: go
+        resolved_utis:
+            - dyn.age80s52
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: py
+        resolved_utis:
+            - public.python-script
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: js
+        resolved_utis:
+            - com.netscape.javascript-source
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: jsx
+        resolved_utis:
+            - dyn.age80y652
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: ts
+        resolved_utis:
+            - public.mpeg-2-transport-stream
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: tsx
+        resolved_utis:
+            - dyn.age81k652
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: rs
+        resolved_utis:
+            - dyn.age81e62
+      app:
+        name: Antigravity
+        path: /Applications/Antigravity.app
+    - target:
+        kind: extension
+        identifier: c
+        resolved_utis:
+            - public.c-source
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: cpp
+        resolved_utis:
+            - public.c-plus-plus-source
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: cc
+        resolved_utis:
+            - public.c-plus-plus-source
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: h
+        resolved_utis:
+            - public.c-header
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: hpp
+        resolved_utis:
+            - public.c-plus-plus-header
+      app:
+        name: Antigravity
+        path: /Applications/Antigravity.app
+    - target:
+        kind: extension
+        identifier: java
+        resolved_utis:
+            - com.sun.java-source
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: rb
+        resolved_utis:
+            - public.ruby-script
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: php
+        resolved_utis:
+            - public.php-script
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: sh
+        resolved_utis:
+            - public.shell-script
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: extension
+        identifier: bash
+        resolved_utis:
+            - public.bash-script
+      app:
+        name: Antigravity
+        path: /Applications/Antigravity.app
+    - target:
+        kind: extension
+        identifier: zsh
+        resolved_utis:
+            - public.zsh-script
+      app:
+        name: Ghostty
+        path: /Applications/Ghostty.app
+    - target:
+        kind: extension
+        identifier: html
+        resolved_utis:
+            - public.html
+      app:
+        name: Google Chrome
+        path: /Applications/Google Chrome.app
+    - target:
+        kind: extension
+        identifier: htm
+        resolved_utis:
+            - public.html
+      app:
+        name: Google Chrome
+        path: /Applications/Google Chrome.app
+    - target:
+        kind: extension
+        identifier: css
+        resolved_utis:
+            - public.css
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: scheme
+        identifier: http
+      app:
+        name: Google Chrome
+        path: /Applications/Google Chrome.app
+    - target:
+        kind: scheme
+        identifier: https
+      app:
+        name: Google Chrome
+        path: /Applications/Google Chrome.app
+    - target:
+        kind: extension
+        identifier: jpg
+        resolved_utis:
+            - public.jpeg
+      app:
+        name: Preview
+        path: /System/Applications/Preview.app
+    - target:
+        kind: extension
+        identifier: jpeg
+        resolved_utis:
+            - public.jpeg
+      app:
+        name: Preview
+        path: /System/Applications/Preview.app
+    - target:
+        kind: extension
+        identifier: png
+        resolved_utis:
+            - public.png
+      app:
+        name: Preview
+        path: /System/Applications/Preview.app
+    - target:
+        kind: extension
+        identifier: gif
+        resolved_utis:
+            - com.compuserve.gif
+      app:
+        name: Preview
+        path: /System/Applications/Preview.app
+    - target:
+        kind: extension
+        identifier: svg
+        resolved_utis:
+            - public.svg-image
+      app:
+        name: Antigravity
+        path: /Applications/Antigravity.app
+    - target:
+        kind: extension
+        identifier: webp
+        resolved_utis:
+            - org.webmproject.webp
+      app:
+        name: Preview
+        path: /System/Applications/Preview.app
+    - target:
+        kind: extension
+        identifier: tiff
+        resolved_utis:
+            - public.tiff
+      app:
+        name: Preview
+        path: /System/Applications/Preview.app
+    - target:
+        kind: extension
+        identifier: tif
+        resolved_utis:
+            - public.tiff
+            - com.canon.tif-raw-image
+      app:
+        name: Preview
+        path: /System/Applications/Preview.app
+    - target:
+        kind: extension
+        identifier: pdf
+        resolved_utis:
+            - com.adobe.pdf
+      app:
+        name: Preview
+        path: /System/Applications/Preview.app
+    - target:
+        kind: extension
+        identifier: docx
+        resolved_utis:
+            - org.openxmlformats.wordprocessingml.document
+      app:
+        name: Pages
+        path: /Applications/Pages.app
+    - target:
+        kind: extension
+        identifier: doc
+        resolved_utis:
+            - com.microsoft.word.doc
+      app:
+        name: Pages
+        path: /Applications/Pages.app
+    - target:
+        kind: extension
+        identifier: xlsx
+        resolved_utis:
+            - org.openxmlformats.spreadsheetml.sheet
+      app:
+        name: Numbers
+        path: /Applications/Numbers.app
+    - target:
+        kind: extension
+        identifier: xls
+        resolved_utis:
+            - com.microsoft.excel.xls
+      app:
+        name: Numbers
+        path: /Applications/Numbers.app
+    - target:
+        kind: extension
+        identifier: pptx
+        resolved_utis:
+            - org.openxmlformats.presentationml.presentation
+    - target:
+        kind: extension
+        identifier: ppt
+        resolved_utis:
+            - com.microsoft.powerpoint.ppt
+    - target:
+        kind: extension
+        identifier: mp3
+        resolved_utis:
+            - public.mp3
+      app:
+        name: Music
+        path: /System/Applications/Music.app
+    - target:
+        kind: extension
+        identifier: mp4
+        resolved_utis:
+            - public.mpeg-4
+            - public.mpeg-4-audio
+      app:
+        name: QuickTime Player
+        path: /System/Applications/QuickTime Player.app
+    - target:
+        kind: extension
+        identifier: mov
+        resolved_utis:
+            - com.apple.quicktime-movie
+      app:
+        name: QuickTime Player
+        path: /System/Applications/QuickTime Player.app
+    - target:
+        kind: extension
+        identifier: wav
+        resolved_utis:
+            - com.microsoft.waveform-audio
+      app:
+        name: Music
+        path: /System/Applications/Music.app
+    - target:
+        kind: extension
+        identifier: avi
+        resolved_utis:
+            - public.avi
+      app:
+        name: QuickTime Player
+        path: /System/Applications/QuickTime Player.app
+    - target:
+        kind: extension
+        identifier: zip
+        resolved_utis:
+            - public.zip-archive
+      app:
+        name: Archive Utility
+        path: /System/Library/CoreServices/Applications/Archive Utility.app
+    - target:
+        kind: extension
+        identifier: tar
+        resolved_utis:
+            - public.tar-archive
+      app:
+        name: Archive Utility
+        path: /System/Library/CoreServices/Applications/Archive Utility.app
+    - target:
+        kind: extension
+        identifier: gz
+        resolved_utis:
+            - org.gnu.gnu-zip-archive
+      app:
+        name: Archive Utility
+        path: /System/Library/CoreServices/Applications/Archive Utility.app
+    - target:
+        kind: extension
+        identifier: gzip
+        resolved_utis:
+            - org.gnu.gnu-zip-archive
+      app:
+        name: Archive Utility
+        path: /System/Library/CoreServices/Applications/Archive Utility.app
+    - target:
+        kind: extension
+        identifier: rar
+        resolved_utis:
+            - dyn.age81e2pw
+    - target:
+        kind: extension
+        identifier: 7z
+        resolved_utis:
+            - org.7-zip.7-zip-archive
+      app:
+        name: Archive Utility
+        path: /System/Library/CoreServices/Applications/Archive Utility.app
+    - target:
+        kind: scheme
+        identifier: mailto
+      app:
+        name: Visual Studio Code
+        path: /Applications/Visual Studio Code.app
+    - target:
+        kind: scheme
+        identifier: ftp
+      app:
+        name: Finder
+        path: /System/Library/CoreServices/Finder.app
+    - target:
+        kind: scheme
+        identifier: ssh
+      app:
+        name: Terminal
+        path: /System/Applications/Utilities/Terminal.app
+metadata:
+    created_by: dutix backup create
+    hostname: MacBook-Pro-90.local

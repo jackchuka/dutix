@@ -1,0 +1,32 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: dutix
+    main: ./cmd/dutix/main.go
+    binary: dutix
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/jackchuka/dutix/internal/version.Version={{.Version}}
+      - -X github.com/jackchuka/dutix/internal/version.Commit={{.Commit}}
+      - -X github.com/jackchuka/dutix/internal/version.Date={{.Date}}
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^style:"
+      - "^refactor:"
