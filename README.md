@@ -1,5 +1,8 @@
 # dutix
 
+[![Test](https://github.com/jackchuka/dutix/workflows/Test/badge.svg)](https://github.com/jackchuka/dutix/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jackchuka/dutix)](https://goreportcard.com/report/github.com/jackchuka/dutix)
+
 ![dutix-hero](assets/hero.png)
 
 **dutix** (Default UTI eXtension handler manager) is a command-line tool for managing default application handlers for file types, UTIs (Uniform Type Identifiers), and URL schemes on macOS.
