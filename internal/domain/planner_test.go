@@ -163,6 +163,36 @@ func TestPlanner_BuildPlan_NoOpFiltering(t *testing.T) {
 	}
 }
 
+func TestPlanner_BuildPlan_DynamicUTISkipped(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	bridge := mocks.NewMockBridge(ctrl)
+
+	// "fish" is not declared by any app, so it resolves to a dynamic UTI.
+	bridge.EXPECT().ResolveUTIsForExtension("fish").Return([]string{"dyn.age80q4pxra"}, nil)
+	bridge.EXPECT().GetDefaultAppForUTI("dyn.age80q4pxra").Return("/Applications/kitty.app", nil)
+
+	planner := NewPlanner(bridge)
+
+	plan, err := planner.BuildPlan(VSCodeApp, []Target{
+		{Kind: TargetKindExtension, Identifier: "fish", Extension: "fish"},
+	})
+	if err != nil {
+		t.Fatalf("BuildPlan() error: %v", err)
+	}
+
+	if len(plan.Items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(plan.Items))
+	}
+
+	item := plan.Items[0]
+	if item.Status != StatusSkipped {
+		t.Errorf("dynamic UTI item should be skipped, got status %s", item.Status)
+	}
+	if item.Warning == "" {
+		t.Error("dynamic UTI item should have a warning explaining it cannot be set")
+	}
+}
+
 func TestPlanner_BuildPlan_Warnings(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	bridge := mocks.NewMockBridge(ctrl)

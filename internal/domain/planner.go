@@ -35,6 +35,15 @@ func shouldSkipUTI(uti string) bool {
 	return false
 }
 
+// isDynamicUTI reports whether a UTI is a dynamically-generated identifier.
+// macOS synthesizes "dyn.*" UTIs for file extensions that no installed
+// application declares. A default handler cannot be registered for a dynamic
+// UTI (NSWorkspace returns NSCocoaErrorDomain code 256), so these must not be
+// applied.
+func isDynamicUTI(uti string) bool {
+	return strings.HasPrefix(uti, "dyn.")
+}
+
 // Planner is responsible for building execution plans
 type Planner struct {
 	bridge macos.Bridge
@@ -95,6 +104,17 @@ func (p *Planner) BuildPlan(desiredApp *App, targets []Target) (*Plan, error) {
 
 			// Add warnings for problematic targets
 			p.addWarnings(&item)
+
+			// Dynamic UTIs cannot be assigned a default handler; skip them
+			// with a clear explanation instead of failing at apply time.
+			if resolvedTarget.Kind == TargetKindUTI && isDynamicUTI(resolvedTarget.Identifier) {
+				item.Status = StatusSkipped
+				name := resolvedTarget.Identifier
+				if resolvedTarget.Extension != "" {
+					name = "." + resolvedTarget.Extension
+				}
+				item.Warning = fmt.Sprintf("%s is not registered by any application (dynamic UTI); no default can be set", name)
+			}
 
 			plan.AddItem(item)
 		}
