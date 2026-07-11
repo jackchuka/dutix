@@ -56,6 +56,10 @@ func (f *JSONFormatter) FormatTargetDetails(
 	return f.encodeData(data)
 }
 
+func (f *JSONFormatter) FormatExtensionDefaults(rows []domain.ExtensionDefault) error {
+	return f.encodeData(rows)
+}
+
 // YAMLFormatter formats output as YAML
 type YAMLFormatter struct {
 	w io.Writer
@@ -102,4 +106,8 @@ func (f *YAMLFormatter) FormatTargetDetails(
 		"availableApps": availableApps,
 	}
 	return f.encodeData(data)
+}
+
+func (f *YAMLFormatter) FormatExtensionDefaults(rows []domain.ExtensionDefault) error {
+	return f.encodeData(rows)
 }

@@ -73,6 +73,7 @@ type Formatter interface {
 		resolvedUTIs []string,
 		availableApps []string,
 	) error
+	FormatExtensionDefaults(rows []domain.ExtensionDefault) error
 }
 
 // New creates a formatter based on the specified format type
