@@ -250,3 +250,25 @@ func (f *TableFormatter) printAvailableApps(availableApps []string, defaultApp s
 
 	appTbl.Print()
 }
+
+func (f *TableFormatter) FormatExtensionDefaults(rows []domain.ExtensionDefault) error {
+	if len(rows) == 0 {
+		_, _ = fmt.Fprintln(f.w, "No extensions found.")
+		return nil
+	}
+
+	theme := defaultTheme()
+	tbl := theme.newStyledTable(f.w, "Extension", "UTI", "Default App")
+
+	for _, row := range rows {
+		uti := row.UTI
+		if uti == "" {
+			uti = theme.Faint("—")
+		}
+		tbl.AddRow(row.Extension, uti, formatAppName(row.DefaultApp, theme))
+	}
+
+	tbl.Print()
+	_, _ = fmt.Fprintf(f.w, "\n%s\n", theme.Faint("Total: %d entries", len(rows)))
+	return nil
+}
