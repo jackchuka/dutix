@@ -29,9 +29,9 @@ type Target struct {
 
 // App represents an application
 type App struct {
-	Name     string `yaml:"name"`                // Display name (e.g., "Visual Studio Code")
-	BundleID string `yaml:"bundle_id,omitempty"` // Bundle identifier (optional, e.g., "com.microsoft.VSCode")
-	Path     string `yaml:"path"`                // Canonical path to .app bundle (e.g., "/Applications/Visual Studio Code.app")
+	Name     string `yaml:"name" json:"name"`                               // Display name (e.g., "Visual Studio Code")
+	BundleID string `yaml:"bundle_id,omitempty" json:"bundle_id,omitempty"` // Bundle identifier (optional, e.g., "com.microsoft.VSCode")
+	Path     string `yaml:"path" json:"path"`                               // Canonical path to .app bundle (e.g., "/Applications/Visual Studio Code.app")
 }
 
 // PlanItemStatus represents the execution status of a plan item
