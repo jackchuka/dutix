@@ -18,6 +18,7 @@ func ParseTargetSpecs(extensions, utis, schemes []string) ([]domain.Target, erro
 			targets = append(targets, domain.Target{
 				Kind:       domain.TargetKindExtension,
 				Identifier: ext,
+				Extension:  ext,
 			})
 		}
 	}
