@@ -179,6 +179,25 @@ dutix targets show public.plain-text
 dutix targets show http
 ```
 
+#### `dutix targets list [pattern]`
+
+List file extensions discovered across all installed applications, along with the UTI each extension resolves to and the current default application for that UTI.
+
+An optional pattern filters extensions by case-insensitive substring.
+
+**Examples:**
+
+```bash
+# List all discovered extensions
+dutix targets list
+
+# Filter by substring
+dutix targets list txt
+
+# Machine-readable output
+dutix targets list --output json --quiet
+```
+
 #### `dutix version`
 
 Display version information including git commit and build date.
@@ -326,6 +345,7 @@ The tool uses a three-phase approach:
 - Requires running as the logged-in user (not sandboxed)
 - Some system-internal UTIs are automatically filtered out during migration
 - `public.html` UTI cannot be set programmatically and is automatically skipped
+- Extensions not declared by any installed application resolve to dynamic (`dyn.*`) UTIs, which cannot be assigned a default handler and are automatically skipped
 
 ## License
 
