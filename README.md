@@ -1,7 +1,8 @@
 # dutix
 
-[![Test](https://github.com/jackchuka/dutix/workflows/Test/badge.svg)](https://github.com/jackchuka/dutix/actions)
-[![Go Report Card](https://goreportcard.com/badge/github.com/jackchuka/dutix)](https://goreportcard.com/report/github.com/jackchuka/dutix)
+[![Test](https://github.com/jackchuka/dutix/actions/workflows/test.yml/badge.svg)](https://github.com/jackchuka/dutix/actions/workflows/test.yml)
+[![Release](https://img.shields.io/github/v/release/jackchuka/dutix?sort=semver)](https://github.com/jackchuka/dutix/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ![dutix-hero](assets/hero.png)
 
