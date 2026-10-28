@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	dmacos "github.com/jackchuka/dutix/internal/macos"
 	macos "github.com/jackchuka/dutix/internal/macos/mock"
 	"go.uber.org/mock/gomock"
 )
@@ -373,5 +374,35 @@ func TestApplier_Apply_BatchesExtensionItems(t *testing.T) {
 				t.Errorf("progress called %d times, want %d", len(progressed), len(plan.Items))
 			}
 		})
+	}
+}
+
+func TestPlan_ConfirmableChanges(t *testing.T) {
+	plan := &Plan{Items: []PlanItem{
+		{Target: PlainTextUTITarget, Status: StatusPending},
+		{Target: HTTPSchemeTarget, Status: StatusPending},
+		{Target: Target{Kind: TargetKindUTI, Identifier: "dyn.age81k3u", Extension: "tf"}, Status: StatusPending},
+		{Target: PlainTextUTITarget, Status: StatusSkipped},
+	}}
+
+	if got := plan.ConfirmableChanges(); got != 2 {
+		t.Errorf("ConfirmableChanges() = %d, want 2", got)
+	}
+}
+
+func TestApplier_Apply_UserDeclined(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	bridge := macos.NewMockBridge(ctrl)
+	bridge.EXPECT().SetDefaultForUTI(VSCodeApp.Path, "public.plain-text").Return(dmacos.ErrUserDeclined)
+
+	plan := &Plan{Items: []PlanItem{{Target: PlainTextUTITarget, DesiredApp: VSCodeApp, Status: StatusPending}}}
+	results, err := NewApplier(bridge).Apply(plan, nil)
+	if err != nil {
+		t.Fatalf("Apply() error = %v", err)
+	}
+
+	r := results[0]
+	if r.Item.Status != StatusSkipped || !r.Declined || r.Error != nil {
+		t.Errorf("declined item: status=%s declined=%v err=%v, want skipped/true/nil", r.Item.Status, r.Declined, r.Error)
 	}
 }

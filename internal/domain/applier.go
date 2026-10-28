@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jackchuka/dutix/internal/logger"
@@ -149,6 +150,14 @@ func (a *Applier) applyItem(item PlanItem) ApplyResult {
 		err = a.bridge.SetDefaultForScheme(item.DesiredApp.Path, item.Target.Identifier)
 	default:
 		err = fmt.Errorf("unsupported target kind: %s", item.Target.Kind)
+	}
+
+	if errors.Is(err, macos.ErrUserDeclined) {
+		result.Declined = true
+		result.Item.Status = StatusSkipped
+		result.Notes = "Kept the current application in the confirmation dialog"
+		logger.Info("Item declined by user", "identifier", item.Target.Identifier)
+		return result
 	}
 
 	if err != nil {

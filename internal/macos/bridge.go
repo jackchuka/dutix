@@ -3,6 +3,7 @@
 package macos
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -43,9 +44,24 @@ type Bridge interface {
 	SetDefaultForScheme(appPath, scheme string) error
 	SetDefaultForExtensions(appPath string, exts []string) error
 
+	// PromptsForDefaultAppChanges reports whether macOS shows a confirmation
+	// dialog for each SetDefaultForUTI / SetDefaultForScheme change
+	PromptsForDefaultAppChanges() bool
+
 	// App information operations
 	ListDefaultDocumentTypesForApp(appPath string) ([]DocumentType, error)
 	ListSupportedDocumentTypes(appPath string) ([]DocumentType, error)
+}
+
+// ErrUserDeclined means the user kept the current application in the macOS
+// confirmation dialog shown for default app changes (macOS 26.4 and later)
+var ErrUserDeclined = errors.New("kept the current application in the confirmation dialog")
+
+func wrapDeclined(err error) error {
+	if handler.IsUserDeclined(err) {
+		return ErrUserDeclined
+	}
+	return err
 }
 
 // bridge provides a high-level interface to macOS default application management
@@ -95,7 +111,7 @@ func (c *bridge) SetDefaultForUTI(appPath, uti string) error {
 		return fmt.Errorf("invalid app path: %w", err)
 	}
 
-	return handler.SetDefaultForUTI(absPath, uti)
+	return wrapDeclined(handler.SetDefaultForUTI(absPath, uti))
 }
 
 // SetDefaultForScheme sets the default application for a URL scheme
@@ -106,7 +122,13 @@ func (c *bridge) SetDefaultForScheme(appPath, scheme string) error {
 		return fmt.Errorf("invalid app path: %w", err)
 	}
 
-	return handler.SetDefaultForScheme(absPath, scheme)
+	return wrapDeclined(handler.SetDefaultForScheme(absPath, scheme))
+}
+
+// PromptsForDefaultAppChanges reports whether macOS asks the user to confirm
+// each UTI / URL scheme default change (macOS 26.4 and later)
+func (c *bridge) PromptsForDefaultAppChanges() bool {
+	return handler.PromptsForDefaultAppChanges()
 }
 
 // SetDefaultForExtensions sets the default application for file extensions

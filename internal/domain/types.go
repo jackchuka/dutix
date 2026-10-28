@@ -72,6 +72,7 @@ type ApplyResult struct {
 	Item     PlanItem // The original plan item
 	Applied  bool     // Whether the change was applied
 	Verified bool     // Whether the change was verified
+	Declined bool     // Whether the user kept the current app in the macOS confirmation dialog
 	Error    error    // Error if any
 	Notes    string   // Additional notes (e.g., "User declined permission prompt")
 }
@@ -133,6 +134,18 @@ func (p *Plan) Stats() (pending, success, failed, skipped int) {
 		}
 	}
 	return
+}
+
+// ConfirmableChanges returns how many pending items go through the UTI / URL
+// scheme APIs, for which macOS may show one confirmation dialog each
+func (p *Plan) ConfirmableChanges() int {
+	n := 0
+	for _, item := range p.Items {
+		if item.Status == StatusPending && !item.Target.SetsByExtension() {
+			n++
+		}
+	}
+	return n
 }
 
 // HasWarnings returns true if any items have warnings

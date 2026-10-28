@@ -120,6 +120,8 @@ Examples:
 				fmt.Println()
 			}
 
+			shared.PrintConfirmationNotice(ctx, plan)
+
 			// Dry run - just preview
 			if dryRun {
 				fmt.Println("Dry run - no changes made.")

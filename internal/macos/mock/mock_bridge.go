@@ -145,6 +145,20 @@ func (mr *MockBridgeMockRecorder) ListSupportedDocumentTypes(appPath any) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSupportedDocumentTypes", reflect.TypeOf((*MockBridge)(nil).ListSupportedDocumentTypes), appPath)
 }
 
+// PromptsForDefaultAppChanges mocks base method.
+func (m *MockBridge) PromptsForDefaultAppChanges() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PromptsForDefaultAppChanges")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// PromptsForDefaultAppChanges indicates an expected call of PromptsForDefaultAppChanges.
+func (mr *MockBridgeMockRecorder) PromptsForDefaultAppChanges() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PromptsForDefaultAppChanges", reflect.TypeOf((*MockBridge)(nil).PromptsForDefaultAppChanges))
+}
+
 // ResolveUTIsForExtension mocks base method.
 func (m *MockBridge) ResolveUTIsForExtension(ext string) ([]string, error) {
 	m.ctrl.T.Helper()
