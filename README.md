@@ -347,6 +347,7 @@ The tool uses a three-phase approach:
 - Some system-internal UTIs are automatically filtered out during migration
 - `public.html` UTI cannot be set programmatically and is automatically skipped
 - Extensions not declared by any installed application resolve to dynamic (`dyn.*`) UTIs. dutix sets these by extension, writing the same LaunchServices entry as Finder's "Get Info → Open with → Change All…" and restarting `lsd`. This entry format is undocumented by Apple and may change in future macOS releases. Passing a `dyn.*` UTI directly via `--utis` is skipped; use `--extensions` instead
+- A default set by extension only applies while no installed app declares that extension. Once an app declares it (e.g. installing an editor that exports a type for `.tf`), macOS resolves the extension to that app's UTI and ignores the extension-based default; run `dutix set` again to set the new UTI
 
 ## License
 

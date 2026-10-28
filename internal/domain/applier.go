@@ -25,10 +25,12 @@ func NewApplier(bridge macos.Bridge) *Applier {
 // Apply executes a plan and returns results
 //
 // The applier will:
-// - Execute items sequentially (not concurrently)
-// - Call progress callback before each item
-// - Continue on failures (don't fail fast)
-// - Capture detailed results for each item
+//   - Execute items sequentially (not concurrently)
+//   - Set extension-keyed items in one batch per app after the others, since
+//     each batch restarts lsd and repeated restarts are throttled
+//   - Call progress callback before each item
+//   - Continue on failures (don't fail fast)
+//   - Capture detailed results for each item
 func (a *Applier) Apply(plan *Plan, progress ProgressCallback) ([]ApplyResult, error) {
 	if plan == nil {
 		return nil, fmt.Errorf("plan cannot be nil")
@@ -39,22 +41,62 @@ func (a *Applier) Apply(plan *Plan, progress ProgressCallback) ([]ApplyResult, e
 	}
 
 	results := make([]ApplyResult, len(plan.Items))
+	byApp := make(map[string][]int)
+	var apps []string
 
 	for i, item := range plan.Items {
-		// Call progress callback if provided
+		if item.Status != StatusSkipped && item.Target.SetsByExtension() && item.DesiredApp != nil && item.DesiredApp.Path != "" {
+			if _, ok := byApp[item.DesiredApp.Path]; !ok {
+				apps = append(apps, item.DesiredApp.Path)
+			}
+			byApp[item.DesiredApp.Path] = append(byApp[item.DesiredApp.Path], i)
+			continue
+		}
+
 		if progress != nil {
 			progress(i, item)
 		}
+		results[i] = a.applyItem(item)
+	}
 
-		// Apply the item
-		result := a.applyItem(item)
-		results[i] = result
+	for _, appPath := range apps {
+		a.applyExtensionBatch(plan, appPath, byApp[appPath], results, progress)
+	}
 
-		// Update plan item status in place
-		plan.Items[i].Status = result.Item.Status
+	for i := range plan.Items {
+		plan.Items[i].Status = results[i].Item.Status
 	}
 
 	return results, nil
+}
+
+// applyExtensionBatch sets every extension-keyed item for one app in a single bridge call
+func (a *Applier) applyExtensionBatch(plan *Plan, appPath string, indexes []int, results []ApplyResult, progress ProgressCallback) {
+	exts := make([]string, 0, len(indexes))
+	for _, i := range indexes {
+		if progress != nil {
+			progress(i, plan.Items[i])
+		}
+		exts = append(exts, plan.Items[i].Target.Extension)
+	}
+
+	logger.Debug("Setting default for extensions", "extensions", exts, "app", appPath)
+	err := a.bridge.SetDefaultForExtensions(appPath, exts)
+
+	for _, i := range indexes {
+		result := ApplyResult{Item: plan.Items[i]}
+		if err != nil {
+			result.Error = err
+			result.Item.Status = StatusFailed
+			result.Notes = fmt.Sprintf("Failed to apply: %v", err)
+			logger.Error("Failed to apply item", err, "extension", plan.Items[i].Target.Extension, "app", appPath)
+		} else {
+			result.Applied = true
+			result.Item.Status = StatusSuccess
+			result.Notes = "Applied successfully"
+		}
+		results[i] = result
+	}
 }
 
 // applyItem applies a single plan item
@@ -92,20 +134,14 @@ func (a *Applier) applyItem(item PlanItem) ApplyResult {
 
 	// Apply based on target kind
 	var err error
-	switch {
-	case item.Target.SetsByExtension():
-		logger.Debug("Setting default for extension",
-			"extension", item.Target.Extension,
-			"app", item.DesiredApp.Path,
-		)
-		err = a.bridge.SetDefaultForExtension(item.DesiredApp.Path, item.Target.Extension)
-	case item.Target.Kind == TargetKindUTI:
+	switch item.Target.Kind {
+	case TargetKindUTI:
 		logger.Debug("Setting default for UTI",
 			"uti", item.Target.Identifier,
 			"app", item.DesiredApp.Path,
 		)
 		err = a.bridge.SetDefaultForUTI(item.DesiredApp.Path, item.Target.Identifier)
-	case item.Target.Kind == TargetKindScheme:
+	case TargetKindScheme:
 		logger.Debug("Setting default for scheme",
 			"scheme", item.Target.Identifier,
 			"app", item.DesiredApp.Path,
