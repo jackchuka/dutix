@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"testing"
 
 	mocks "github.com/jackchuka/dutix/internal/macos/mock"
@@ -163,7 +164,7 @@ func TestPlanner_BuildPlan_NoOpFiltering(t *testing.T) {
 	}
 }
 
-func TestPlanner_BuildPlan_DynamicUTISkipped(t *testing.T) {
+func TestPlanner_BuildPlan_DynamicUTISetByExtension(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	bridge := mocks.NewMockBridge(ctrl)
 
@@ -185,11 +186,38 @@ func TestPlanner_BuildPlan_DynamicUTISkipped(t *testing.T) {
 	}
 
 	item := plan.Items[0]
-	if item.Status != StatusSkipped {
-		t.Errorf("dynamic UTI item should be skipped, got status %s", item.Status)
+	if item.Status != StatusPending {
+		t.Errorf("dynamic UTI item from an extension should be pending, got status %s", item.Status)
+	}
+	if !item.Target.SetsByExtension() {
+		t.Error("dynamic UTI item from an extension should be set by extension")
 	}
 	if item.Warning == "" {
-		t.Error("dynamic UTI item should have a warning explaining it cannot be set")
+		t.Error("dynamic UTI item should have a warning explaining it is set by extension")
+	}
+}
+
+func TestPlanner_BuildPlan_DynamicUTIWithoutExtensionSkipped(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	bridge := mocks.NewMockBridge(ctrl)
+
+	bridge.EXPECT().GetDefaultAppForUTI("dyn.age80q4pxra").Return("", fmt.Errorf("not found"))
+
+	planner := NewPlanner(bridge)
+
+	plan, err := planner.BuildPlan(VSCodeApp, []Target{
+		{Kind: TargetKindUTI, Identifier: "dyn.age80q4pxra"},
+	})
+	if err != nil {
+		t.Fatalf("BuildPlan() error: %v", err)
+	}
+
+	item := plan.Items[0]
+	if item.Status != StatusSkipped {
+		t.Errorf("dynamic UTI given directly should be skipped, got status %s", item.Status)
+	}
+	if item.Warning == "" {
+		t.Error("dynamic UTI given directly should have a warning pointing to --extensions")
 	}
 }
 

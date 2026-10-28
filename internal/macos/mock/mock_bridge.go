@@ -160,6 +160,20 @@ func (mr *MockBridgeMockRecorder) ResolveUTIsForExtension(ext any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveUTIsForExtension", reflect.TypeOf((*MockBridge)(nil).ResolveUTIsForExtension), ext)
 }
 
+// SetDefaultForExtension mocks base method.
+func (m *MockBridge) SetDefaultForExtension(appPath, ext string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDefaultForExtension", appPath, ext)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetDefaultForExtension indicates an expected call of SetDefaultForExtension.
+func (mr *MockBridgeMockRecorder) SetDefaultForExtension(appPath, ext any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDefaultForExtension", reflect.TypeOf((*MockBridge)(nil).SetDefaultForExtension), appPath, ext)
+}
+
 // SetDefaultForScheme mocks base method.
 func (m *MockBridge) SetDefaultForScheme(appPath, scheme string) error {
 	m.ctrl.T.Helper()

@@ -54,6 +54,24 @@ func TestApplier_Apply(t *testing.T) {
 			},
 		},
 		{
+			name: "dynamic UTI item set by extension",
+			plan: &Plan{
+				Items: []PlanItem{
+					{
+						Target:     Target{Kind: TargetKindUTI, Identifier: "dyn.age80q4pxra", Extension: "fish"},
+						DesiredApp: VSCodeApp,
+						Status:     StatusPending,
+					},
+				},
+			},
+			wantResultLen:  1,
+			wantSuccessful: 1,
+			wantErr:        false,
+			setupMock: func(m *macos.MockBridge) {
+				m.EXPECT().SetDefaultForExtension(VSCodeApp.Path, "fish").Return(nil)
+			},
+		},
+		{
 			name: "multiple items",
 			plan: &Plan{
 				Items: []PlanItem{

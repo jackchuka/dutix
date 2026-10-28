@@ -41,6 +41,7 @@ type Bridge interface {
 	// Mutation operations (used by Applier)
 	SetDefaultForUTI(appPath, uti string) error
 	SetDefaultForScheme(appPath, scheme string) error
+	SetDefaultForExtension(appPath, ext string) error
 
 	// App information operations
 	ListDefaultDocumentTypesForApp(appPath string) ([]DocumentType, error)
@@ -106,6 +107,18 @@ func (c *bridge) SetDefaultForScheme(appPath, scheme string) error {
 	}
 
 	return handler.SetDefaultForScheme(absPath, scheme)
+}
+
+// SetDefaultForExtension sets the default application for a file extension
+// by tag, the same way Finder's "Change All" does. Used for extensions that
+// resolve to dynamic UTIs, which SetDefaultForUTI cannot set.
+func (c *bridge) SetDefaultForExtension(appPath, ext string) error {
+	absPath, err := filepath.Abs(appPath)
+	if err != nil {
+		return fmt.Errorf("invalid app path: %w", err)
+	}
+
+	return handler.SetDefaultForExtension(absPath, ext)
 }
 
 // ResolveUTIsForExtension resolves a file extension to one or more UTIs
