@@ -1,14 +1,6 @@
 module github.com/jackchuka/dutix
 
-go 1.26.5
-
-require (
-	github.com/fatih/color v1.19.0
-	github.com/jackchuka/macos-apphandlers-bridge v0.0.0-20261028021733-999c3e427bca
-	github.com/rodaine/table v1.4.0
-	github.com/spf13/cobra v1.10.2
-	go.uber.org/mock v0.6.0
-)
+go 1.27.3
 
 require (
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
@@ -19,4 +11,11 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 )
 
-require gopkg.in/yaml.v3 v3.0.1
+require (
+	github.com/fatih/color v1.19.0
+	github.com/jackchuka/macos-apphandlers-bridge v0.0.0-20261028021733-999c3e427bca
+	github.com/rodaine/table v1.4.0
+	github.com/spf13/cobra v1.10.2
+	go.uber.org/mock v0.6.0
+	gopkg.in/yaml.v3 v3.0.1
+)

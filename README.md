@@ -23,7 +23,7 @@
 ## Requirements
 
 - macOS 12.0 (Monterey) or later
-- Go 1.25 or later (for building from source)
+- Go 1.27 or later (for building from source)
 
 ## Installation
 

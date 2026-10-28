@@ -13,8 +13,6 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
-    reviewers:
-      - "YOUR_GITHUB_USERNAME"  # TODO: Update with your GitHub username
     labels:
       - "dependencies"
       - "go"
@@ -30,10 +28,8 @@ updates:
     commit-message:
       prefix: "ci"
       include: "scope"
-    reviewers:
-      - "YOUR_GITHUB_USERNAME"  # TODO: Update with your GitHub username
     assignees:
-      - "YOUR_GITHUB_USERNAME"  # TODO: Update with your GitHub username
+      - "jackchuka"
     labels:
       - "dependencies"
       - "github-actions"
