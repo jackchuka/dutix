@@ -2,6 +2,7 @@ package domain
 
 import (
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/jackchuka/dutix/internal/macos"
@@ -81,6 +82,12 @@ func (p *PlanItem) IsNoOp() bool {
 		return false
 	}
 	return p.CurrentApp.Path == p.DesiredApp.Path
+}
+
+// SetsByExtension reports whether the target must be applied by file extension
+// because its extension resolves to a dynamic UTI.
+func (t *Target) SetsByExtension() bool {
+	return t.Kind == TargetKindUTI && t.Extension != "" && strings.HasPrefix(t.Identifier, "dyn.")
 }
 
 // NeedsUserConfirmation returns true if this target may require user confirmation

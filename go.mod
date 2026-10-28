@@ -4,7 +4,7 @@ go 1.26.5
 
 require (
 	github.com/fatih/color v1.19.0
-	github.com/jackchuka/macos-apphandlers-bridge v0.0.0-20260111170116-19c84e0b70da
+	github.com/jackchuka/macos-apphandlers-bridge v0.0.0-20261028021733-999c3e427bca
 	github.com/rodaine/table v1.4.0
 	github.com/spf13/cobra v1.10.2
 	go.uber.org/mock v0.6.0

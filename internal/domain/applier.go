@@ -92,14 +92,20 @@ func (a *Applier) applyItem(item PlanItem) ApplyResult {
 
 	// Apply based on target kind
 	var err error
-	switch item.Target.Kind {
-	case TargetKindUTI:
+	switch {
+	case item.Target.SetsByExtension():
+		logger.Debug("Setting default for extension",
+			"extension", item.Target.Extension,
+			"app", item.DesiredApp.Path,
+		)
+		err = a.bridge.SetDefaultForExtension(item.DesiredApp.Path, item.Target.Extension)
+	case item.Target.Kind == TargetKindUTI:
 		logger.Debug("Setting default for UTI",
 			"uti", item.Target.Identifier,
 			"app", item.DesiredApp.Path,
 		)
 		err = a.bridge.SetDefaultForUTI(item.DesiredApp.Path, item.Target.Identifier)
-	case TargetKindScheme:
+	case item.Target.Kind == TargetKindScheme:
 		logger.Debug("Setting default for scheme",
 			"scheme", item.Target.Identifier,
 			"app", item.DesiredApp.Path,

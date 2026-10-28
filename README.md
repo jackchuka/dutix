@@ -346,7 +346,7 @@ The tool uses a three-phase approach:
 - Requires running as the logged-in user (not sandboxed)
 - Some system-internal UTIs are automatically filtered out during migration
 - `public.html` UTI cannot be set programmatically and is automatically skipped
-- Extensions not declared by any installed application resolve to dynamic (`dyn.*`) UTIs, which cannot be assigned a default handler and are automatically skipped
+- Extensions not declared by any installed application resolve to dynamic (`dyn.*`) UTIs. dutix sets these by extension, writing the same LaunchServices entry as Finder's "Get Info → Open with → Change All…" and restarting `lsd`. This entry format is undocumented by Apple and may change in future macOS releases. Passing a `dyn.*` UTI directly via `--utis` is skipped; use `--extensions` instead
 
 ## License
 
