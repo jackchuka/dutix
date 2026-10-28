@@ -145,6 +145,20 @@ func (mr *MockBridgeMockRecorder) ListSupportedDocumentTypes(appPath any) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSupportedDocumentTypes", reflect.TypeOf((*MockBridge)(nil).ListSupportedDocumentTypes), appPath)
 }
 
+// PromptsForDefaultAppChanges mocks base method.
+func (m *MockBridge) PromptsForDefaultAppChanges() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PromptsForDefaultAppChanges")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// PromptsForDefaultAppChanges indicates an expected call of PromptsForDefaultAppChanges.
+func (mr *MockBridgeMockRecorder) PromptsForDefaultAppChanges() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PromptsForDefaultAppChanges", reflect.TypeOf((*MockBridge)(nil).PromptsForDefaultAppChanges))
+}
+
 // ResolveUTIsForExtension mocks base method.
 func (m *MockBridge) ResolveUTIsForExtension(ext string) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -160,18 +174,18 @@ func (mr *MockBridgeMockRecorder) ResolveUTIsForExtension(ext any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveUTIsForExtension", reflect.TypeOf((*MockBridge)(nil).ResolveUTIsForExtension), ext)
 }
 
-// SetDefaultForExtension mocks base method.
-func (m *MockBridge) SetDefaultForExtension(appPath, ext string) error {
+// SetDefaultForExtensions mocks base method.
+func (m *MockBridge) SetDefaultForExtensions(appPath string, exts []string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetDefaultForExtension", appPath, ext)
+	ret := m.ctrl.Call(m, "SetDefaultForExtensions", appPath, exts)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SetDefaultForExtension indicates an expected call of SetDefaultForExtension.
-func (mr *MockBridgeMockRecorder) SetDefaultForExtension(appPath, ext any) *gomock.Call {
+// SetDefaultForExtensions indicates an expected call of SetDefaultForExtensions.
+func (mr *MockBridgeMockRecorder) SetDefaultForExtensions(appPath, exts any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDefaultForExtension", reflect.TypeOf((*MockBridge)(nil).SetDefaultForExtension), appPath, ext)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDefaultForExtensions", reflect.TypeOf((*MockBridge)(nil).SetDefaultForExtensions), appPath, exts)
 }
 
 // SetDefaultForScheme mocks base method.

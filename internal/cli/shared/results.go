@@ -26,7 +26,7 @@ func DisplayResults(results []domain.ApplyResult) error {
 	successCount := 0
 	failCount := 0
 	skippedCount := 0
-	var failedItems []domain.ApplyResult
+	var failedItems, declinedItems []domain.ApplyResult
 
 	for _, result := range results {
 		switch result.Item.Status {
@@ -37,10 +37,20 @@ func DisplayResults(results []domain.ApplyResult) error {
 			failedItems = append(failedItems, result)
 		case domain.StatusSkipped:
 			skippedCount++
+			if result.Declined {
+				declinedItems = append(declinedItems, result)
+			}
 		}
 	}
 
 	fmt.Printf("\nSuccess: %d, Failed: %d, Skipped: %d\n", successCount, failCount, skippedCount)
+
+	if len(declinedItems) > 0 {
+		fmt.Println("\nKept current app (declined in the confirmation dialog):")
+		for _, result := range declinedItems {
+			fmt.Printf("  • %s:%s\n", result.Item.Target.Kind, result.Item.Target.Identifier)
+		}
+	}
 
 	// Show detailed errors for failed items
 	if failCount > 0 {
