@@ -13,7 +13,7 @@ require (
 
 require (
 	github.com/fatih/color v1.19.0
-	github.com/jackchuka/macos-apphandlers-bridge v0.0.0-20261028021733-999c3e427bca
+	github.com/jackchuka/macos-apphandlers-bridge v0.1.0
 	github.com/rodaine/table v1.4.0
 	github.com/spf13/cobra v1.10.2
 	go.uber.org/mock v0.6.0
