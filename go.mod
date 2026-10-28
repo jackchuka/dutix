@@ -14,7 +14,7 @@ require (
 require (
 	github.com/fatih/color v1.19.0
 	github.com/jackchuka/macos-apphandlers-bridge v0.2.0
-	github.com/rodaine/table v1.4.0
+	github.com/rodaine/table v1.4.1
 	github.com/spf13/cobra v1.10.2
 	go.uber.org/mock v0.6.0
 	gopkg.in/yaml.v3 v3.0.1
