@@ -23,6 +23,9 @@ as the default handler for those types.
 This is useful when switching to a new application and wanting to transfer all
 file associations automatically.
 
+Either app can be given as a path to an .app bundle, a bundle identifier, or a
+name.
+
 Examples:
   dutix apps migrate "TextEdit" "Visual Studio Code"
   dutix apps migrate Safari Chrome --dry-run
@@ -37,23 +40,15 @@ Examples:
 			fromAppQuery := args[0]
 			toAppQuery := args[1]
 
-			// List all applications
-			macosApps, err := ctx.Bridge.ListAllApplications()
-			if err != nil {
-				return fmt.Errorf("failed to list applications: %w", err)
-			}
-
-			// Convert to domain apps
-			apps := domain.FromMacOSAppInfos(macosApps)
-
 			// Find source app
-			fromApp, err := domain.FindApp(apps, fromAppQuery)
+			resolver := domain.NewResolver(ctx.Bridge)
+			fromApp, err := resolver.Resolve(fromAppQuery)
 			if err != nil {
 				return err
 			}
 
 			// Find target app
-			toApp, err := domain.FindApp(apps, toAppQuery)
+			toApp, err := resolver.Resolve(toAppQuery)
 			if err != nil {
 				return err
 			}
