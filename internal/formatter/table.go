@@ -120,14 +120,35 @@ func (f *TableFormatter) FormatAppDetails(
 	app domain.App,
 	supportedTypes []domain.DocumentType,
 	defaultTypes []domain.DocumentType,
+	copies []domain.AppCopy,
 ) error {
 	theme := defaultTheme()
 
 	f.printAppInfo(app, theme)
 	_, _ = fmt.Fprintln(f.w)
+	if len(copies) > 0 {
+		f.printCopies(copies, theme)
+		_, _ = fmt.Fprintln(f.w)
+	}
 	f.printDocumentTypes(supportedTypes, defaultTypes, theme)
 
 	return nil
+}
+
+// Helper: print the registered copies of the app's bundle ID
+func (f *TableFormatter) printCopies(copies []domain.AppCopy, theme Theme) {
+	tbl := theme.newStyledTable(f.w, "Registered Copy", "CFBundleVersion", "Defaults Resolve Here", "This App")
+	for _, c := range copies {
+		winner, chosen := "", ""
+		if c.Winner {
+			winner = theme.Success("✓")
+		}
+		if c.Chosen {
+			chosen = "✓"
+		}
+		tbl.AddRow(c.Path, c.Version, winner, chosen)
+	}
+	tbl.Print()
 }
 
 // Helper: print app info table
@@ -136,6 +157,9 @@ func (f *TableFormatter) printAppInfo(app domain.App, theme Theme) {
 	infoTbl.AddRow("Name", app.Name)
 	infoTbl.AddRow("Path", app.Path)
 	infoTbl.AddRow("Bundle ID", app.BundleID)
+	if app.Version != "" {
+		infoTbl.AddRow("CFBundleVersion", app.Version)
+	}
 	infoTbl.Print()
 }
 

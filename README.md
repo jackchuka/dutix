@@ -134,7 +134,7 @@ dutix apps list --output json
 
 #### `dutix apps show <app>`
 
-Show detailed information about an application including supported file types and UTIs.
+Show detailed information about an application including supported file types and UTIs, and every registered copy of its bundle ID in the order LaunchServices prefers them.
 
 **Examples:**
 

@@ -66,6 +66,7 @@ type Formatter interface {
 		app domain.App,
 		supportedTypes []domain.DocumentType,
 		defaultTypes []domain.DocumentType,
+		copies []domain.AppCopy,
 	) error
 	FormatTargetDetails(
 		target domain.Target,
