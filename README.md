@@ -79,6 +79,8 @@ Available on all commands:
 
 Set default application for file extensions, UTIs, or URL schemes.
 
+`<app>` can be an application name (or a substring of its name or path), a bundle identifier, or a path to an `.app` bundle. See [Specifying the application](#specifying-the-application).
+
 **Flags:**
 
 - `--extensions` - Comma-separated file extensions (e.g., `txt,md,json`)
@@ -101,6 +103,10 @@ dutix set TextEdit --extensions txt --dry-run
 
 # Skip confirmation
 dutix set Finder --extensions zip,tar --yes
+
+# By bundle ID or bundle path
+dutix set com.microsoft.VSCode --extensions md
+dutix set ~/Applications/Foo.app --extensions md
 ```
 
 #### `dutix apps list [flags]`
@@ -124,7 +130,7 @@ dutix apps list --filter "Visual"
 dutix apps list --output json
 ```
 
-#### `dutix apps show <app-name>`
+#### `dutix apps show <app>`
 
 Show detailed information about an application including supported file types and UTIs.
 
@@ -133,6 +139,8 @@ Show detailed information about an application including supported file types an
 ```bash
 dutix apps show "Visual Studio Code"
 dutix apps show Safari --output json
+dutix apps show com.apple.TextEdit
+dutix apps show ~/Applications/Foo.app
 ```
 
 #### `dutix apps migrate <from-app> <to-app> [flags]`
@@ -268,6 +276,14 @@ dutix apps list --filter code
 # Get machine-readable output
 dutix apps show Safari --output json
 ```
+
+### Specifying the application
+
+Every command that takes an application (`set`, `apps show`, `apps migrate`) resolves it the same way:
+
+1. **Bundle path**: an argument containing `/`, starting with `~`, or ending in `.app`. dutix expands `~` and `~user`, makes the path absolute, and resolves symlinks. A symlinked bundle therefore resolves to the real bundle it points to, which is the path LaunchServices records. The bundle is used even if it isn't in `/Applications` and the app scan doesn't list it. If a path starting with `/`, `~`, `./` or `../` doesn't exist, dutix stops with an error and does not guess. Other arguments that don't exist as paths, such as `Utilities/Terminal` or a bare `Foo.app`, fall back to the other two forms.
+2. **Bundle ID**, e.g. `com.microsoft.VSCode`. This resolves to the copy LaunchServices currently prefers.
+3. **Name**: a case-insensitive substring of an app's name or path, as before.
 
 ## Output Formats
 

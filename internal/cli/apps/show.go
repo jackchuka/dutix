@@ -11,7 +11,7 @@ import (
 
 func newShowCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "show <app-name>",
+		Use:   "show <app|bundle-path|bundle-id>",
 		Short: "Show application details and supported content types",
 		Long: `Displays information about an application including:
   - Application path and bundle ID
@@ -21,7 +21,9 @@ func newShowCommand() *cobra.Command {
 Examples:
   dutix apps show "Visual Studio Code"
   dutix apps show Safari
-  dutix apps show TextEdit`,
+  dutix apps show TextEdit
+  dutix apps show com.microsoft.VSCode
+  dutix apps show ~/Applications/Foo.app`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := shared.GetContext(cmd)
@@ -31,17 +33,8 @@ Examples:
 
 			appQuery := args[0]
 
-			// List all applications
-			macosApps, err := ctx.Bridge.ListAllApplications()
-			if err != nil {
-				return fmt.Errorf("failed to list applications: %w", err)
-			}
-
-			// Convert to domain apps
-			apps := domain.FromMacOSAppInfos(macosApps)
-
 			// Find the application
-			matchedAppPtr, err := domain.FindApp(apps, appQuery)
+			matchedAppPtr, err := domain.ResolveApp(ctx.Bridge, appQuery)
 			if err != nil {
 				return err
 			}

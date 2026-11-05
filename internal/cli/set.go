@@ -21,9 +21,15 @@ func NewSetCommand() *cobra.Command {
 	var skipConfirmation bool
 
 	cmd := &cobra.Command{
-		Use:   "set <app>",
+		Use:   "set <app|bundle-path|bundle-id>",
 		Short: "Set default application for targets",
 		Long: `Sets the default application for specified file extensions, UTIs, or URL schemes.
+
+The application can be given as:
+  - a path to an .app bundle (e.g. ~/Applications/Foo.app);
+    used as-is even if it isn't in /Applications
+  - a bundle identifier (e.g. com.microsoft.VSCode)
+  - a name or path substring (e.g. "Visual Studio Code")
 
 You can specify targets using:
   --extensions: File extensions (e.g., txt,md,json)
@@ -34,7 +40,9 @@ Examples:
   dutix set "Visual Studio Code" --extensions txt,md,json
   dutix set Safari --schemes http,https
   dutix set TextEdit --extensions txt --dry-run
-  dutix set Finder --extensions zip,tar --yes`,
+  dutix set Finder --extensions zip,tar --yes
+  dutix set com.microsoft.VSCode --extensions md
+  dutix set ~/Applications/Foo.app --extensions md`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := shared.GetContext(cmd)
@@ -55,14 +63,7 @@ Examples:
 			}
 
 			// Find the application
-			apps, err := ctx.Bridge.ListAllApplications()
-			if err != nil {
-				return fmt.Errorf("failed to scan applications: %w", err)
-			}
-			domainApps := domain.FromMacOSAppInfos(apps)
-
-			// Find the application
-			selectedApp, err := domain.FindApp(domainApps, appName)
+			selectedApp, err := domain.ResolveApp(ctx.Bridge, appName)
 			if err != nil {
 				return err
 			}
@@ -80,6 +81,9 @@ Examples:
 			if !ctx.QuietMode {
 				fmt.Printf("Application: %s\n", selectedApp.Name)
 				fmt.Printf("Path: %s\n", selectedApp.Path)
+				if selectedApp.BundleID != "" {
+					fmt.Printf("Bundle ID: %s\n", selectedApp.BundleID)
+				}
 				fmt.Printf("Targets: %d\n\n", len(plan.Items))
 
 				f := formatter.New("table", nil)
