@@ -14,6 +14,7 @@ type AppInfo struct {
 	Name     string
 	Path     string
 	BundleID string
+	Version  string // CFBundleVersion; only filled by AppInfoAtPath
 }
 
 type DocumentType struct {
@@ -51,6 +52,19 @@ type Bridge interface {
 	// App information operations
 	ListDefaultDocumentTypesForApp(appPath string) ([]DocumentType, error)
 	ListSupportedDocumentTypes(appPath string) ([]DocumentType, error)
+
+	// LaunchServices registration operations
+
+	// AppInfoAtPath reads an application bundle's Info.plist, whether or not
+	// LaunchServices knows about the bundle
+	AppInfoAtPath(path string) (AppInfo, error)
+	// ApplicationsForBundleID lists the registered copies of a bundle ID in
+	// LaunchServices preference order; the first one is what defaults resolve to
+	ApplicationsForBundleID(bundleID string) ([]string, error)
+	// RegisterApplication registers an application bundle with LaunchServices
+	RegisterApplication(path string) error
+	// UnregisterApplication removes an application bundle from LaunchServices
+	UnregisterApplication(path string) error
 }
 
 // ErrUserDeclined means the user kept the current application in the macOS
@@ -193,4 +207,37 @@ func (c *bridge) ListSupportedDocumentTypes(appPath string) ([]DocumentType, err
 		})
 	}
 	return result, nil
+}
+
+// AppInfoAtPath reads the name, bundle ID, and CFBundleVersion of the
+// application bundle at path, whether or not LaunchServices knows about it
+func (c *bridge) AppInfoAtPath(path string) (AppInfo, error) {
+	info, err := handler.GetBundleInfo(path)
+	if err != nil {
+		return AppInfo{}, err
+	}
+	return AppInfo{
+		Name:     info.Name,
+		Path:     path,
+		BundleID: info.BundleID,
+		Version:  info.Version,
+	}, nil
+}
+
+// ApplicationsForBundleID returns every registered application with the
+// bundle ID, in LaunchServices preference order: the first one is the copy
+// that defaults resolve to
+func (c *bridge) ApplicationsForBundleID(bundleID string) ([]string, error) {
+	return handler.ListAppsForBundleID(bundleID)
+}
+
+// RegisterApplication registers the bundle at path with LaunchServices
+func (c *bridge) RegisterApplication(path string) error {
+	return handler.RegisterApp(path)
+}
+
+// UnregisterApplication removes the bundle at path from the LaunchServices
+// database, so it no longer competes with other copies of the same bundle ID
+func (c *bridge) UnregisterApplication(path string) error {
+	return handler.UnregisterApp(path)
 }
