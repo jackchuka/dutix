@@ -2,6 +2,7 @@ package apps
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/jackchuka/dutix/internal/cli/shared"
 	"github.com/jackchuka/dutix/internal/domain"
@@ -17,6 +18,7 @@ func newShowCommand() *cobra.Command {
   - Application path and bundle ID
   - Supported content types (UTIs)
   - Supported URL schemes
+  - Registered copies with the same bundle ID, in LaunchServices order
 
 Examples:
   dutix apps show "Visual Studio Code"
@@ -50,17 +52,28 @@ Examples:
 				return fmt.Errorf("failed to get default types: %w", err)
 			}
 
-			// Display information using formatter
-			if !ctx.QuietMode {
-				f := formatter.New(ctx.OutputMode, nil)
-				return f.FormatAppDetails(
-					matchedApp,
-					domain.FromMacOSDocumentTypes(docTypes),
-					domain.FromMacOSDocumentTypes(defaultTypes),
-				)
+			if ctx.QuietMode {
+				return nil
 			}
 
-			return nil
+			// Registered copies of the bundle ID (read-only, optional)
+			var copies []domain.AppCopy
+			if matchedApp.BundleID != "" {
+				report, err := domain.InspectCopies(ctx.Bridge, &matchedApp)
+				if err != nil {
+					_, _ = fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+				}
+				copies = report.Copies
+			}
+
+			// Display information using formatter
+			f := formatter.New(ctx.OutputMode, nil)
+			return f.FormatAppDetails(
+				matchedApp,
+				domain.FromMacOSDocumentTypes(docTypes),
+				domain.FromMacOSDocumentTypes(defaultTypes),
+				copies,
+			)
 		},
 	}
 
