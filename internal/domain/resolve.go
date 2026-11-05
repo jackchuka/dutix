@@ -195,3 +195,12 @@ func (r *Resolver) resolveBundleID(bundleID string) (*App, error) {
 	}
 	return nil, nil
 }
+
+// canonicalPath resolves symlinks when the path exists, so paths from
+// LaunchServices and from the command line compare equal
+func canonicalPath(p string) string {
+	if resolved, err := filepath.EvalSymlinks(p); err == nil {
+		return resolved
+	}
+	return filepath.Clean(p)
+}
