@@ -86,6 +86,9 @@ func (f *TableFormatter) addPlanRows(tbl table.Table, items []domain.PlanItem, t
 		currentApp := formatAppName(item.CurrentApp, theme)
 		desiredApp := formatAppName(item.DesiredApp, theme)
 		statusStr := theme.formatStatus(item.Status)
+		if item.Status == domain.StatusSkipped && item.SameBundleID() {
+			statusStr = theme.Faint("unchanged (same bundle ID)")
+		}
 		if item.Note != "" {
 			notes = append(notes, fmt.Sprintf("%s: %s", targetStr, item.Note))
 		}

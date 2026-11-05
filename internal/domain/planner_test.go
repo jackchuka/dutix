@@ -1,9 +1,12 @@
 package domain
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/jackchuka/dutix/internal/macos"
 	mocks "github.com/jackchuka/dutix/internal/macos/mock"
 	"go.uber.org/mock/gomock"
 )
@@ -93,6 +96,7 @@ func TestPlanner_BuildPlan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			bridge := mocks.NewMockBridge(ctrl)
+			stubBundleIDs(bridge)
 			tt.setupMock(bridge)
 
 			planner := NewPlanner(bridge)
@@ -135,6 +139,7 @@ func TestPlanner_BuildPlan(t *testing.T) {
 func TestPlanner_BuildPlan_NoOpFiltering(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	bridge := mocks.NewMockBridge(ctrl)
+	stubBundleIDs(bridge)
 
 	// Setup: txt extension resolves to public.plain-text UTI
 	// TextEdit is the current default, and we're trying to set it as desired (no-op)
@@ -167,6 +172,7 @@ func TestPlanner_BuildPlan_NoOpFiltering(t *testing.T) {
 func TestPlanner_BuildPlan_DynamicUTISetByExtension(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	bridge := mocks.NewMockBridge(ctrl)
+	stubBundleIDs(bridge)
 
 	// "fish" is not declared by any app, so it resolves to a dynamic UTI.
 	bridge.EXPECT().ResolveUTIsForExtension("fish").Return([]string{"dyn.age80q4pxra"}, nil)
@@ -200,6 +206,7 @@ func TestPlanner_BuildPlan_DynamicUTISetByExtension(t *testing.T) {
 func TestPlanner_BuildPlan_DynamicUTIWithoutExtensionSkipped(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	bridge := mocks.NewMockBridge(ctrl)
+	stubBundleIDs(bridge)
 
 	bridge.EXPECT().GetDefaultAppForUTI("dyn.age80q4pxra").Return("", fmt.Errorf("not found"))
 
@@ -224,6 +231,7 @@ func TestPlanner_BuildPlan_DynamicUTIWithoutExtensionSkipped(t *testing.T) {
 func TestPlanner_BuildPlan_Warnings(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	bridge := mocks.NewMockBridge(ctrl)
+	stubBundleIDs(bridge)
 
 	bridge.EXPECT().GetDefaultAppForScheme("http").Return("/Applications/Safari.app", nil)
 	bridge.EXPECT().GetDefaultAppForScheme("https").Return("/Applications/Safari.app", nil)
@@ -304,6 +312,7 @@ func TestPlanner_ResolveTarget(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			bridge := mocks.NewMockBridge(ctrl)
+			stubBundleIDs(bridge)
 			tt.setupMock(bridge)
 
 			planner := NewPlanner(bridge)
@@ -388,5 +397,124 @@ func TestPlan_Stats(t *testing.T) {
 	}
 	if skipped != 1 {
 		t.Errorf("Stats() skipped = %d, want 1", skipped)
+	}
+}
+
+// stubBundleIDs answers AppInfoAtPath for the fixture apps, which the planner
+// uses to compare the current default's bundle ID with the desired app's
+func stubBundleIDs(m *mocks.MockBridge) {
+	ids := map[string]string{
+		"/Applications/TextEdit.app":           "com.apple.TextEdit",
+		"/Applications/Safari.app":             "com.apple.Safari",
+		"/Applications/Visual Studio Code.app": "com.microsoft.VSCode",
+		"/Applications/Google Chrome.app":      "com.google.Chrome",
+		"/Applications/kitty.app":              "net.kovidgoyal.kitty",
+	}
+	m.EXPECT().AppInfoAtPath(gomock.Any()).DoAndReturn(func(p string) (macos.AppInfo, error) {
+		if id, ok := ids[p]; ok {
+			return macos.AppInfo{Path: p, BundleID: id}, nil
+		}
+		return macos.AppInfo{}, errors.New("not found")
+	}).AnyTimes()
+}
+
+func TestPlanner_BuildPlan_SameBundleIDIsUnchanged(t *testing.T) {
+	const storeVSCode = "/nix/store/old-vscode/Applications/Visual Studio Code.app"
+	desired := &App{Name: "Code", BundleID: "com.microsoft.VSCode", Path: "/nix/store/new-vscode/Applications/Visual Studio Code.app"}
+
+	tests := []struct {
+		name       string
+		current    string
+		info       macos.AppInfo
+		infoErr    error
+		wantStatus PlanItemStatus
+		wantNote   bool
+	}{
+		{name: "other copy, same bundle ID", current: storeVSCode,
+			info: macos.AppInfo{BundleID: "com.microsoft.VSCode"}, wantStatus: StatusSkipped, wantNote: true},
+		{name: "same bundle ID, different case", current: storeVSCode,
+			info: macos.AppInfo{BundleID: "COM.MICROSOFT.VSCODE"}, wantStatus: StatusSkipped, wantNote: true},
+		{name: "different bundle ID", current: "/Applications/TextEdit.app",
+			info: macos.AppInfo{BundleID: "com.apple.TextEdit"}, wantStatus: StatusPending},
+		{name: "unreadable current app", current: storeVSCode,
+			infoErr: errors.New("gone"), wantStatus: StatusPending},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			bridge := mocks.NewMockBridge(ctrl)
+			bridge.EXPECT().GetDefaultAppForUTI("public.plain-text").Return(tt.current, nil)
+			bridge.EXPECT().AppInfoAtPath(tt.current).Return(tt.info, tt.infoErr)
+
+			plan, err := NewPlanner(bridge).BuildPlan(desired, []Target{PlainTextUTITarget})
+			if err != nil {
+				t.Fatal(err)
+			}
+			item := plan.Items[0]
+			if item.Status != tt.wantStatus {
+				t.Errorf("Status = %s, want %s", item.Status, tt.wantStatus)
+			}
+			if (item.Note != "") != tt.wantNote || item.SameBundleID() != tt.wantNote {
+				t.Errorf("Note = %q, SameBundleID = %v, want note %v", item.Note, item.SameBundleID(), tt.wantNote)
+			}
+			if tt.wantNote && !strings.Contains(item.Note, tt.current) {
+				t.Errorf("Note %q should name the copy that currently opens it", item.Note)
+			}
+
+			// Unchanged items never reach SetDefault (no macOS confirmation dialog)
+			if tt.wantStatus == StatusSkipped {
+				results, err := NewApplier(bridge).Apply(plan, nil)
+				if err != nil || results[0].Applied {
+					t.Errorf("Apply() = %+v, %v; want skipped", results, err)
+				}
+			}
+		})
+	}
+}
+
+func TestPlanner_BuildPlan_SameBundleIDByExtension(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	bridge := mocks.NewMockBridge(ctrl)
+	desired := &App{Name: "kitty", BundleID: "net.kovidgoyal.kitty", Path: "/nix/store/new-kitty/Applications/kitty.app"}
+
+	bridge.EXPECT().ResolveUTIsForExtension("fish").Return([]string{"dyn.age80q4pxra"}, nil)
+	bridge.EXPECT().GetDefaultAppForUTI("dyn.age80q4pxra").Return("/nix/store/old-kitty/Applications/kitty.app", nil)
+	bridge.EXPECT().AppInfoAtPath("/nix/store/old-kitty/Applications/kitty.app").
+		Return(macos.AppInfo{BundleID: "net.kovidgoyal.kitty"}, nil)
+
+	plan, err := NewPlanner(bridge).BuildPlan(desired, []Target{
+		{Kind: TargetKindExtension, Identifier: "fish", Extension: "fish"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	item := plan.Items[0]
+	if item.Status != StatusSkipped || !item.SameBundleID() {
+		t.Errorf("item = %+v; want skipped as the same bundle ID", item)
+	}
+	if item.Warning != "" {
+		t.Errorf("unchanged item should not warn that it will be set by extension: %q", item.Warning)
+	}
+
+	// Nothing to set, so SetDefaultForExtensions (and its lsd restart) doesn't run
+	if _, err := NewApplier(bridge).Apply(plan, nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPlanner_BundleIDLookupIsCached(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	bridge := mocks.NewMockBridge(ctrl)
+	const current = "/Applications/TextEdit.app"
+
+	bridge.EXPECT().GetDefaultAppForUTI(gomock.Any()).Return(current, nil).Times(2)
+	bridge.EXPECT().AppInfoAtPath(current).Return(macos.AppInfo{BundleID: "com.apple.TextEdit"}, nil).Times(1)
+
+	_, err := NewPlanner(bridge).BuildPlan(VSCodeApp, []Target{
+		PlainTextUTITarget,
+		{Kind: TargetKindUTI, Identifier: "public.rtf"},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }

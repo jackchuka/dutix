@@ -302,6 +302,8 @@ However `<app>` is given, `dutix set` and `dutix apps migrate` do the following:
 dutix set ~/Applications/Foo.app --extensions md,txt --prune-others --yes
 ```
 
+A target is **unchanged** when its current default is already the app's bundle ID, even if a different copy currently opens it, for example after a rebuild that only moved the app to a new path. dutix then doesn't set it again, so macOS 26.4+ shows no confirmation dialog, and the plan marks it "unchanged (same bundle ID)" with a note naming the copy that currently opens it. Registering and `--prune-others` still run, which makes the chosen copy the one that opens it.
+
 Pruning happens after applying, not before, because LaunchServices saves registration changes some seconds after they're made, and setting a default by extension restarts `lsd`, which drops unsaved changes. Measured on macOS 27.2, unregistering right after that restart is saved. Pass all of an app's targets in one `dutix set` call: a second call for the same app within a few seconds can restart `lsd` again before the first call's pruning is saved.
 
 An unregistered copy that is still on disk may be registered again later, so run the command again if defaults drift. Use `dutix apps show <path>` to see which copy defaults resolve to. LaunchServices ignores apps in temporary directories (`/tmp`, `/private/var/folders`), so paths there can't win.
