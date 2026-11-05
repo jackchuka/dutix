@@ -15,6 +15,9 @@ func DisplayResults(results []domain.ApplyResult) error {
 	resultPlan := &domain.Plan{Items: make([]domain.PlanItem, len(results))}
 	for i, result := range results {
 		resultPlan.Items[i] = result.Item
+		// Notes describe the state before applying (e.g. which copy opened an
+		// item); copies may have been pruned since
+		resultPlan.Items[i].Note = ""
 	}
 
 	f := formatter.New("table", nil)

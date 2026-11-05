@@ -69,23 +69,26 @@ func (f *TableFormatter) FormatPlan(plan *domain.Plan) error {
 	theme := defaultTheme()
 	tbl := theme.newStyledTable(f.w, "Target", "Extension", "Current", "Desired", "Status")
 
-	warnings := f.addPlanRows(tbl, plan.Items, theme)
+	warnings, notes := f.addPlanRows(tbl, plan.Items, theme)
 	tbl.Print()
 
 	f.printWarnings(warnings, theme)
+	f.printNotes(notes, theme)
 	f.printStats(plan, theme)
 
 	return nil
 }
 
-// Helper: add plan rows to table and collect warnings
-func (f *TableFormatter) addPlanRows(tbl table.Table, items []domain.PlanItem, theme Theme) []string {
-	var warnings []string
+// Helper: add plan rows to table and collect warnings and notes
+func (f *TableFormatter) addPlanRows(tbl table.Table, items []domain.PlanItem, theme Theme) (warnings, notes []string) {
 	for _, item := range items {
 		targetStr := fmt.Sprintf("%s:%s", item.Target.Kind, item.Target.Identifier)
 		currentApp := formatAppName(item.CurrentApp, theme)
 		desiredApp := formatAppName(item.DesiredApp, theme)
 		statusStr := theme.formatStatus(item.Status)
+		if item.Note != "" {
+			notes = append(notes, fmt.Sprintf("%s: %s", targetStr, item.Note))
+		}
 
 		tbl.AddRow(targetStr, item.Target.Extension, currentApp, desiredApp, statusStr)
 
@@ -93,7 +96,19 @@ func (f *TableFormatter) addPlanRows(tbl table.Table, items []domain.PlanItem, t
 			warnings = append(warnings, fmt.Sprintf("%s: %s", targetStr, item.Warning))
 		}
 	}
-	return warnings
+	return warnings, notes
+}
+
+// Helper: print notes if any exist
+func (f *TableFormatter) printNotes(notes []string, theme Theme) {
+	if len(notes) == 0 {
+		return
+	}
+
+	_, _ = fmt.Fprintf(f.w, "\n%s\n", theme.Header("Notes:"))
+	for _, note := range notes {
+		_, _ = fmt.Fprintf(f.w, "  •  %s\n", note)
+	}
 }
 
 // Helper: print warnings if any exist
