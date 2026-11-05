@@ -19,3 +19,8 @@ require (
 	go.uber.org/mock v0.6.0
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+// Fork with bundle-ID verification in SetDefaultForExtensions and the
+// GetBundleInfo, ListAppsForBundleID, RegisterApp and UnregisterApp functions:
+// https://github.com/dnlzro/macos-apphandlers-bridge
+replace github.com/jackchuka/macos-apphandlers-bridge => github.com/dnlzro/macos-apphandlers-bridge v0.2.1-0.20261105224735-ad3721906ab9
