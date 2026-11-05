@@ -33,6 +33,7 @@ type App struct {
 	Name     string `yaml:"name" json:"name"`                               // Display name (e.g., "Visual Studio Code")
 	BundleID string `yaml:"bundle_id,omitempty" json:"bundle_id,omitempty"` // Bundle identifier (optional, e.g., "com.microsoft.VSCode")
 	Path     string `yaml:"path" json:"path"`                               // Canonical path to .app bundle (e.g., "/Applications/Visual Studio Code.app")
+	Version  string `yaml:"version,omitempty" json:"version,omitempty"`     // CFBundleVersion, when known
 }
 
 // PlanItemStatus represents the execution status of a plan item
