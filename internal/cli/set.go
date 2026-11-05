@@ -19,6 +19,7 @@ func NewSetCommand() *cobra.Command {
 	var schemes []string
 	var dryRun bool
 	var skipConfirmation bool
+	var copyOpts shared.CopyOptions
 
 	cmd := &cobra.Command{
 		Use:   "set <app|bundle-path|bundle-id>",
@@ -27,9 +28,14 @@ func NewSetCommand() *cobra.Command {
 
 The application can be given as:
   - a path to an .app bundle (e.g. ~/Applications/Foo.app);
-    used as-is even if it isn't in /Applications
+    used as-is even if it isn't in /Applications, and registered with
+    LaunchServices before applying
   - a bundle identifier (e.g. com.microsoft.VSCode)
   - a name or path substring (e.g. "Visual Studio Code")
+
+macOS stores defaults by bundle ID. When several copies share a bundle ID,
+defaults resolve to the one with the highest CFBundleVersion (then by path).
+Use --prune-others to unregister the other copies, so the chosen one wins.
 
 You can specify targets using:
   --extensions: File extensions (e.g., txt,md,json)
@@ -42,7 +48,7 @@ Examples:
   dutix set TextEdit --extensions txt --dry-run
   dutix set Finder --extensions zip,tar --yes
   dutix set com.microsoft.VSCode --extensions md
-  dutix set ~/Applications/Foo.app --extensions md`,
+  dutix set ~/Applications/Foo.app --extensions md --prune-others --yes`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := shared.GetContext(cmd)
@@ -93,6 +99,7 @@ Examples:
 				fmt.Println()
 			}
 
+			copies := shared.PreviewCopies(ctx, selectedApp, copyOpts)
 			shared.PrintConfirmationNotice(ctx, plan)
 
 			// Dry run - just preview
@@ -117,7 +124,7 @@ Examples:
 			}
 
 			// Apply the plan
-			results, err := ctx.Applier.Apply(plan, nil)
+			results, err := copies.Apply(plan)
 			if err != nil {
 				return fmt.Errorf("failed to apply changes: %w", err)
 			}
@@ -138,6 +145,7 @@ Examples:
 	cmd.Flags().StringSliceVar(&schemes, "schemes", nil, "URL schemes (comma-separated, e.g., http,https)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview changes without applying")
 	cmd.Flags().BoolVar(&skipConfirmation, "yes", false, "Skip confirmation prompt")
+	shared.AddCopyFlags(cmd, &copyOpts)
 
 	return cmd
 }

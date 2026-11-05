@@ -13,6 +13,7 @@ import (
 func newMigrateCommand() *cobra.Command {
 	var dryRun bool
 	var skipConfirmation bool
+	var copyOpts shared.CopyOptions
 
 	cmd := &cobra.Command{
 		Use:   "migrate <from-app> <to-app>",
@@ -24,7 +25,8 @@ This is useful when switching to a new application and wanting to transfer all
 file associations automatically.
 
 Either app can be given as a path to an .app bundle, a bundle identifier, or a
-name.
+name. <to-app> is registered with LaunchServices before applying if needed;
+--prune-others also unregisters other copies of its bundle ID afterwards.
 
 Examples:
   dutix apps migrate "TextEdit" "Visual Studio Code"
@@ -115,6 +117,7 @@ Examples:
 				fmt.Println()
 			}
 
+			copies := shared.PreviewCopies(ctx, toApp, copyOpts)
 			shared.PrintConfirmationNotice(ctx, plan)
 
 			// Dry run - just preview
@@ -139,7 +142,7 @@ Examples:
 			}
 
 			// Apply the plan
-			results, err := ctx.Applier.Apply(plan, nil)
+			results, err := copies.Apply(plan)
 			if err != nil {
 				return fmt.Errorf("failed to apply migration: %w", err)
 			}
@@ -157,6 +160,7 @@ Examples:
 
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview changes without applying")
 	cmd.Flags().BoolVar(&skipConfirmation, "yes", false, "Skip confirmation prompt")
+	shared.AddCopyFlags(cmd, &copyOpts)
 
 	return cmd
 }

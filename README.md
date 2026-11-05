@@ -88,6 +88,8 @@ Set default application for file extensions, UTIs, or URL schemes.
 - `--schemes` - Comma-separated URL schemes (e.g., `http,https`)
 - `--dry-run` - Preview changes without applying
 - `--yes` - Skip confirmation prompt
+- `--prune-others` - After applying, unregister other copies with the same bundle ID so defaults resolve to this one
+- `--no-register` - Don't register the app with LaunchServices before applying
 
 **Examples:**
 
@@ -106,7 +108,7 @@ dutix set Finder --extensions zip,tar --yes
 
 # By bundle ID or bundle path
 dutix set com.microsoft.VSCode --extensions md
-dutix set ~/Applications/Foo.app --extensions md
+dutix set ~/Applications/Foo.app --extensions md --prune-others
 ```
 
 #### `dutix apps list [flags]`
@@ -151,6 +153,7 @@ Migrate all file type associations from one application to another.
 
 - `--dry-run` - Preview migration without applying changes
 - `--yes` - Skip confirmation prompt
+- `--prune-others`, `--no-register` - Same as for `dutix set`, applied to `<to-app>`
 
 **Examples:**
 
@@ -284,6 +287,24 @@ Every command that takes an application (`set`, `apps show`, `apps migrate`) res
 1. **Bundle path**: an argument containing `/`, starting with `~`, or ending in `.app`. dutix expands `~` and `~user`, makes the path absolute, and resolves symlinks. A symlinked bundle therefore resolves to the real bundle it points to, which is the path LaunchServices records. The bundle is used even if it isn't in `/Applications` and the app scan doesn't list it. If a path starting with `/`, `~`, `./` or `../` doesn't exist, dutix stops with an error and does not guess. Other arguments that don't exist as paths, such as `Utilities/Terminal` or a bare `Foo.app`, fall back to the other two forms.
 2. **Bundle ID**, e.g. `com.microsoft.VSCode`. This resolves to the copy LaunchServices currently prefers.
 3. **Name**: a case-insensitive substring of an app's name or path, as before.
+
+### When several copies share a bundle ID
+
+macOS stores defaults by **bundle ID**, not by path. When several registered copies share a bundle ID, defaults and file opens resolve to the copy with the highest `CFBundleVersion`. The version is compared component by component as numbers. Ties are broken by path order. A copy you didn't pick can therefore end up handling your files, even right after `dutix set`.
+
+However `<app>` is given, `dutix set` and `dutix apps migrate` do the following:
+
+- **Registration**: if the app isn't registered with LaunchServices yet, it is registered before applying (`LSRegisterURL`).
+- **`--prune-others`**: after applying, every other registered copy of the bundle ID is unregistered (`lsregister -u`), so the chosen copy wins. The preview lists the copies that will be removed.
+- **Warnings**: dutix warns before and after applying if another copy still outranks the given path.
+
+```bash
+dutix set ~/Applications/Foo.app --extensions md,txt --prune-others --yes
+```
+
+Pruning happens after applying, not before, because LaunchServices saves registration changes some seconds after they're made, and setting a default by extension restarts `lsd`, which drops unsaved changes. Measured on macOS 27.2, unregistering right after that restart is saved. Pass all of an app's targets in one `dutix set` call: a second call for the same app within a few seconds can restart `lsd` again before the first call's pruning is saved.
+
+An unregistered copy that is still on disk may be registered again later, so run the command again if defaults drift. Use `dutix apps show <path>` to see which copy defaults resolve to. LaunchServices ignores apps in temporary directories (`/tmp`, `/private/var/folders`), so paths there can't win.
 
 ## Output Formats
 
