@@ -59,6 +59,7 @@ type PlanItem struct {
 	DesiredApp *App           // Desired default app
 	Status     PlanItemStatus // Execution status
 	Warning    string         // Optional warning message
+	Note       string         // Optional informational message
 }
 
 // Plan represents a complete set of changes
