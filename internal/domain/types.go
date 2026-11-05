@@ -79,12 +79,27 @@ type ApplyResult struct {
 	Notes    string   // Additional notes (e.g., "User declined permission prompt")
 }
 
-// IsNoOp returns true if this plan item is a no-op (current == desired)
+// IsNoOp returns true if this plan item is a no-op: the current default is
+// the desired app, either the same bundle or another copy with the same
+// bundle ID. LaunchServices stores defaults by bundle ID, so setting it again
+// would change nothing (and on macOS 26.4+ would show a confirmation dialog).
+// Which copy opens it is up to LaunchServices' ranking of the copies.
 func (p *PlanItem) IsNoOp() bool {
 	if p.CurrentApp == nil || p.DesiredApp == nil {
 		return false
 	}
-	return p.CurrentApp.Path == p.DesiredApp.Path
+	return p.CurrentApp.Path == p.DesiredApp.Path || p.SameBundleID()
+}
+
+// SameBundleID reports whether the current default is another copy of the
+// desired app: a different path with the same bundle ID
+func (p *PlanItem) SameBundleID() bool {
+	if p.CurrentApp == nil || p.DesiredApp == nil {
+		return false
+	}
+	return p.CurrentApp.Path != p.DesiredApp.Path &&
+		p.CurrentApp.BundleID != "" &&
+		strings.EqualFold(p.CurrentApp.BundleID, p.DesiredApp.BundleID)
 }
 
 // SetsByExtension reports whether the target must be applied by file extension
