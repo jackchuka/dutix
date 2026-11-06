@@ -83,20 +83,28 @@ Examples:
 				return fmt.Errorf("failed to build plan: %w", err)
 			}
 
-			// Display preview
+			// Display preview. With --yes, the results table follows right
+			// away, so the plan table is only shown for --dry-run or before
+			// the prompt.
 			if !ctx.QuietMode {
 				fmt.Printf("Application: %s\n", selectedApp.Name)
 				fmt.Printf("Path: %s\n", selectedApp.Path)
 				if selectedApp.BundleID != "" {
 					fmt.Printf("Bundle ID: %s\n", selectedApp.BundleID)
 				}
-				fmt.Printf("Targets: %d\n\n", len(plan.Items))
-
-				f := formatter.New("table", nil)
-				if err := f.FormatPlan(plan); err != nil {
-					return err
+				if plan.Settled() {
+					fmt.Printf("Targets: %d (all already set)\n", len(plan.Items))
+				} else {
+					fmt.Printf("Targets: %d\n", len(plan.Items))
+					if dryRun || !skipConfirmation {
+						fmt.Println()
+						f := formatter.New("table", nil)
+						if err := f.FormatPlan(plan); err != nil {
+							return err
+						}
+						fmt.Println()
+					}
 				}
-				fmt.Println()
 			}
 
 			copies := shared.PreviewCopies(ctx, selectedApp, copyOpts)
@@ -108,8 +116,9 @@ Examples:
 				return nil
 			}
 
-			// Confirm unless --yes flag
-			if !skipConfirmation {
+			// Confirm unless --yes flag, or there is nothing to confirm
+			pending, _, _, _ := plan.Stats()
+			if !skipConfirmation && (pending > 0 || copies.WillChange()) {
 				fmt.Print("Apply these changes? (y/N): ")
 				reader := bufio.NewReader(os.Stdin)
 				response, err := reader.ReadString('\n')

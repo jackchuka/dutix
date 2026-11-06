@@ -107,14 +107,21 @@ Examples:
 				return fmt.Errorf("failed to build migration plan: %w", err)
 			}
 
-			// Display preview
+			// Display preview. With --yes, the results table follows right
+			// away, so the plan table is only shown for --dry-run or before
+			// the prompt.
 			if !ctx.QuietMode {
-				fmt.Printf("Migrating file associations from %s to %s\n\n", fromApp.Name, toApp.Name)
-				f := formatter.New(ctx.OutputMode, nil)
-				if err := f.FormatPlan(plan); err != nil {
-					return err
+				fmt.Printf("Migrating file associations from %s to %s\n", fromApp.Name, toApp.Name)
+				if plan.Settled() {
+					fmt.Printf("%s already opens all %d file type(s).\n", toApp.Name, len(plan.Items))
+				} else if dryRun || !skipConfirmation {
+					fmt.Println()
+					f := formatter.New(ctx.OutputMode, nil)
+					if err := f.FormatPlan(plan); err != nil {
+						return err
+					}
+					fmt.Println()
 				}
-				fmt.Println()
 			}
 
 			copies := shared.PreviewCopies(ctx, toApp, copyOpts)
@@ -126,8 +133,9 @@ Examples:
 				return nil
 			}
 
-			// Confirm unless --yes flag
-			if !skipConfirmation && !ctx.QuietMode {
+			// Confirm unless --yes flag, or there is nothing to confirm
+			pending, _, _, _ := plan.Stats()
+			if !skipConfirmation && !ctx.QuietMode && (pending > 0 || copies.WillChange()) {
 				fmt.Printf("Migrate %d file type(s) to %s? (y/N): ", len(plan.Items), toApp.Name)
 				var response string
 				_, err := fmt.Scanln(&response)

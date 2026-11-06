@@ -231,7 +231,7 @@ func (p *Planner) bundleIDAt(path string) string {
 
 // addWarnings adds warnings to a plan item for known issues
 func (p *Planner) addWarnings(item *PlanItem) {
-	if item.Target.NeedsUserConfirmation() {
+	if item.Status == StatusPending && item.Target.NeedsUserConfirmation() {
 		item.Warning = fmt.Sprintf("Setting default for %s may require user confirmation", item.Target.Identifier)
 	}
 
