@@ -86,6 +86,19 @@ func PreviewCopies(ctx *Context, app *domain.App, opts CopyOptions) *Copies {
 	return c
 }
 
+// WillChange reports whether Apply will register the app or unregister other
+// copies of its bundle ID, apart from any change in the plan
+func (c *Copies) WillChange() bool {
+	if !c.managed {
+		return false
+	}
+	if c.report == nil {
+		return true
+	}
+	return (!c.opts.NoRegister && !c.report.Registered()) ||
+		(c.opts.PruneOthers && len(c.report.Others()) > 0)
+}
+
 // Apply applies plan. It first registers the app if needed, since defaults
 // are set by path, and afterwards unregisters the other copies (with
 // --prune-others) and warns if another copy still wins.

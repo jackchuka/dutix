@@ -165,6 +165,17 @@ func (p *Plan) ConfirmableChanges() int {
 	return n
 }
 
+// Settled reports whether every item is skipped without a warning, so there is
+// nothing to change and nothing to point out
+func (p *Plan) Settled() bool {
+	for _, item := range p.Items {
+		if item.Status != StatusSkipped || item.Warning != "" {
+			return false
+		}
+	}
+	return true
+}
+
 // HasWarnings returns true if any items have warnings
 func (p *Plan) HasWarnings() bool {
 	for _, item := range p.Items {

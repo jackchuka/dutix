@@ -260,6 +260,58 @@ func TestPlanner_BuildPlan_Warnings(t *testing.T) {
 	}
 }
 
+func TestPlanner_BuildPlan_NoConfirmationWarningWhenUnchanged(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	bridge := mocks.NewMockBridge(ctrl)
+	stubBundleIDs(bridge)
+
+	bridge.EXPECT().GetDefaultAppForScheme("http").Return("/Applications/Google Chrome.app", nil)
+
+	planner := NewPlanner(bridge)
+
+	plan, err := planner.BuildPlan(ChromeApp, []Target{HTTPSchemeTarget})
+	if err != nil {
+		t.Fatalf("BuildPlan() error: %v", err)
+	}
+
+	item := plan.Items[0]
+	if item.Status != StatusSkipped {
+		t.Fatalf("expected item to be skipped, got status %s", item.Status)
+	}
+	if item.Warning != "" {
+		t.Errorf("unchanged scheme should have no warning, got %q", item.Warning)
+	}
+	if !plan.Settled() {
+		t.Error("Plan.Settled() should return true when every item is unchanged")
+	}
+}
+
+func TestPlan_Settled(t *testing.T) {
+	tests := []struct {
+		name  string
+		items []PlanItem
+		want  bool
+	}{
+		{"all skipped", []PlanItem{{Status: StatusSkipped}, {Status: StatusSkipped}}, true},
+		{"one pending", []PlanItem{{Status: StatusSkipped}, {Status: StatusPending}}, false},
+		{"skipped with warning", []PlanItem{{Status: StatusSkipped, Warning: "use --extensions"}}, false},
+		{"applied", []PlanItem{{Status: StatusSuccess}}, false},
+		{"failed", []PlanItem{{Status: StatusFailed}}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			plan := NewPlan()
+			for _, item := range tt.items {
+				plan.AddItem(item)
+			}
+			if got := plan.Settled(); got != tt.want {
+				t.Errorf("Settled() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPlanner_ResolveTarget(t *testing.T) {
 	tests := []struct {
 		name        string
