@@ -286,6 +286,42 @@ func TestPlanner_BuildPlan_NoConfirmationWarningWhenUnchanged(t *testing.T) {
 	}
 }
 
+func TestNewReport(t *testing.T) {
+	results := []ApplyResult{
+		{Item: PlanItem{
+			Target:     PlainTextUTITarget,
+			CurrentApp: TextEditApp,
+			DesiredApp: VSCodeApp,
+			Status:     StatusSuccess,
+		}},
+		{Item: PlanItem{Target: HTTPSchemeTarget, DesiredApp: VSCodeApp, Status: StatusSkipped}, Declined: true},
+		{Item: PlanItem{Target: HTTPSSchemeTarget, DesiredApp: VSCodeApp, Status: StatusFailed}, Error: errors.New("boom")},
+	}
+
+	r := NewReport(VSCodeApp, results, false)
+
+	if r.App.Path != VSCodeApp.Path || r.DryRun {
+		t.Errorf("unexpected report header: %+v", r)
+	}
+	want := []ReportItem{
+		{Target: "uti:public.plain-text", Current: TextEditApp.Path, Status: StatusSuccess},
+		{Target: "scheme:http", Status: StatusSkipped, Declined: true},
+		{Target: "scheme:https", Status: StatusFailed, Error: "boom"},
+	}
+	if len(r.Items) != len(want) {
+		t.Fatalf("got %d items, want %d", len(r.Items), len(want))
+	}
+	for i := range want {
+		if r.Items[i] != want[i] {
+			t.Errorf("item %d = %+v, want %+v", i, r.Items[i], want[i])
+		}
+	}
+
+	if empty := NewReport(VSCodeApp, nil, true); empty.Items == nil || !empty.DryRun {
+		t.Errorf("empty report should have an empty item list and keep DryRun: %+v", empty)
+	}
+}
+
 func TestPlan_Settled(t *testing.T) {
 	tests := []struct {
 		name  string

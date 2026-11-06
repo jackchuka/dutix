@@ -2,6 +2,7 @@ package formatter
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -98,6 +99,33 @@ type Formatter interface {
 		availableApps []string,
 	) error
 	FormatExtensionDefaults(rows []domain.ExtensionDefault) error
+}
+
+// IsTable reports whether format is the human-readable table format, which is
+// also the fallback for unknown formats
+func IsTable(format string) bool {
+	switch strings.ToLower(format) {
+	case "json", "yaml":
+		return false
+	default:
+		return true
+	}
+}
+
+// Encode writes data as JSON or YAML, for commands whose output has no table
+// form
+func Encode(format string, w io.Writer, data any) error {
+	if w == nil {
+		w = os.Stdout
+	}
+	switch strings.ToLower(format) {
+	case "json":
+		return (&JSONFormatter{w: w}).encodeData(data)
+	case "yaml":
+		return (&YAMLFormatter{w: w}).encodeData(data)
+	default:
+		return fmt.Errorf("unsupported output format for encoding: %s", format)
+	}
 }
 
 // New creates a formatter based on the specified format type

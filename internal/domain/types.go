@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -163,6 +164,49 @@ func (p *Plan) ConfirmableChanges() int {
 		}
 	}
 	return n
+}
+
+// Report is the machine-readable outcome of setting defaults for an app
+type Report struct {
+	App          App          `yaml:"app" json:"app"`
+	DryRun       bool         `yaml:"dry_run" json:"dry_run"`
+	Items        []ReportItem `yaml:"items" json:"items"`
+	Registered   bool         `yaml:"registered" json:"registered"`                         // The app was registered with LaunchServices
+	Unregistered []string     `yaml:"unregistered,omitempty" json:"unregistered,omitempty"` // Other copies unregistered with --prune-others
+}
+
+// ReportItem is the outcome for one target
+type ReportItem struct {
+	Target    string         `yaml:"target" json:"target"` // kind:identifier, e.g. "scheme:http"
+	Extension string         `yaml:"extension,omitempty" json:"extension,omitempty"`
+	Current   string         `yaml:"current,omitempty" json:"current,omitempty"` // Path of the default app before applying
+	Status    PlanItemStatus `yaml:"status" json:"status"`
+	Declined  bool           `yaml:"declined,omitempty" json:"declined,omitempty"` // The user kept the current app in the confirmation dialog
+	Warning   string         `yaml:"warning,omitempty" json:"warning,omitempty"`
+	Error     string         `yaml:"error,omitempty" json:"error,omitempty"`
+}
+
+// NewReport builds a report for app from apply results. For a dry run, wrap
+// the plan items in results without applying them.
+func NewReport(app *App, results []ApplyResult, dryRun bool) Report {
+	r := Report{App: *app, DryRun: dryRun, Items: make([]ReportItem, len(results))}
+	for i, res := range results {
+		item := ReportItem{
+			Target:    fmt.Sprintf("%s:%s", res.Item.Target.Kind, res.Item.Target.Identifier),
+			Extension: res.Item.Target.Extension,
+			Status:    res.Item.Status,
+			Declined:  res.Declined,
+			Warning:   res.Item.Warning,
+		}
+		if res.Item.CurrentApp != nil {
+			item.Current = res.Item.CurrentApp.Path
+		}
+		if res.Error != nil {
+			item.Error = res.Error.Error()
+		}
+		r.Items[i] = item
+	}
+	return r
 }
 
 // Settled reports whether every item is skipped without a warning, so there is
