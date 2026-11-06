@@ -2,6 +2,7 @@ package shared
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/jackchuka/dutix/internal/domain"
 	"github.com/jackchuka/dutix/internal/macos"
@@ -22,6 +23,23 @@ type Context struct {
 	DebugMode  bool
 	QuietMode  bool
 	OutputMode string
+
+	started bool // Some output was printed, so the next section needs a gap
+}
+
+// Section starts a block of output. Blocks are separated by one blank line,
+// with none before the first or after the last.
+func (c *Context) Section() {
+	if c.started {
+		fmt.Println()
+	}
+	c.started = true
+}
+
+// Warnf prints a warning to stderr as its own section
+func (c *Context) Warnf(format string, a ...any) {
+	c.Section()
+	_, _ = fmt.Fprintf(os.Stderr, "Warning: "+format+"\n", a...)
 }
 
 // GetContext retrieves the CLI context from a cobra command

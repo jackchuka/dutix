@@ -111,16 +111,16 @@ Examples:
 			// away, so the plan table is only shown for --dry-run or before
 			// the prompt.
 			if !ctx.QuietMode {
+				ctx.Section()
 				fmt.Printf("Migrating file associations from %s to %s\n", fromApp.Name, toApp.Name)
 				if plan.Settled() {
 					fmt.Printf("%s already opens all %d file type(s).\n", toApp.Name, len(plan.Items))
 				} else if dryRun || !skipConfirmation {
-					fmt.Println()
+					ctx.Section()
 					f := formatter.New(ctx.OutputMode, nil)
 					if err := f.FormatPlan(plan); err != nil {
 						return err
 					}
-					fmt.Println()
 				}
 			}
 
@@ -129,6 +129,7 @@ Examples:
 
 			// Dry run - just preview
 			if dryRun {
+				ctx.Section()
 				fmt.Println("Dry run - no changes made.")
 				return nil
 			}
@@ -136,6 +137,7 @@ Examples:
 			// Confirm unless --yes flag, or there is nothing to confirm
 			pending, _, _, _ := plan.Stats()
 			if !skipConfirmation && !ctx.QuietMode && (pending > 0 || copies.WillChange()) {
+				ctx.Section()
 				fmt.Printf("Migrate %d file type(s) to %s? (y/N): ", len(plan.Items), toApp.Name)
 				var response string
 				_, err := fmt.Scanln(&response)
@@ -157,7 +159,7 @@ Examples:
 
 			// Display results
 			if !ctx.QuietMode {
-				if err := shared.DisplayResults(results); err != nil {
+				if err := shared.DisplayResults(ctx, results); err != nil {
 					return err
 				}
 			}

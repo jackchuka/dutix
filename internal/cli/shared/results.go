@@ -10,7 +10,7 @@ import (
 // DisplayResults shows apply results in table format with summary. It prints
 // nothing when no item was changed, declined or warned about, since the
 // preview already said there was nothing to change.
-func DisplayResults(results []domain.ApplyResult) error {
+func DisplayResults(ctx *Context, results []domain.ApplyResult) error {
 	// Build results table
 	resultPlan := &domain.Plan{Items: make([]domain.PlanItem, len(results))}
 	declined := false
@@ -26,7 +26,8 @@ func DisplayResults(results []domain.ApplyResult) error {
 		return nil
 	}
 
-	fmt.Println("\nResults:")
+	ctx.Section()
+	fmt.Println("Results:")
 
 	f := formatter.New("table", nil)
 	if err := f.FormatPlan(resultPlan); err != nil {

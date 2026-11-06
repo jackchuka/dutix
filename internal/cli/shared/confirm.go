@@ -14,5 +14,6 @@ func PrintConfirmationNotice(ctx *Context, plan *domain.Plan) {
 	if n == 0 || !ctx.Bridge.PromptsForDefaultAppChanges() {
 		return
 	}
-	_, _ = fmt.Fprintf(os.Stderr, "macOS will ask you to confirm %d change(s) in a system dialog; choose \"Use\" for each (unanswered dialogs time out after 2 minutes).\n\n", n)
+	ctx.Section()
+	_, _ = fmt.Fprintf(os.Stderr, "macOS will ask you to confirm %d change(s) in a system dialog; choose \"Use\" for each (unanswered dialogs time out after 2 minutes).\n", n)
 }
