@@ -1,6 +1,7 @@
 package formatter
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"strings"
@@ -54,8 +55,30 @@ func (t Theme) formatStatus(status domain.PlanItemStatus) string {
 func (t Theme) newStyledTable(w io.Writer, headers ...any) table.Table {
 	tbl := table.New(headers...)
 	tbl.WithHeaderFormatter(t.Header).WithFirstColumnFormatter(t.FirstColumn)
-	tbl.WithWriter(w)
+	tbl.WithWriter(trimWriter{w})
 	return tbl
+}
+
+// trimWriter drops trailing spaces from each line. The table library pads
+// every column, including the last, to the column's width.
+type trimWriter struct {
+	w io.Writer
+}
+
+func (t trimWriter) Write(p []byte) (int, error) {
+	out := make([]byte, 0, len(p))
+	for _, line := range bytes.SplitAfter(p, []byte("\n")) {
+		if body, ok := bytes.CutSuffix(line, []byte("\n")); ok {
+			out = append(out, bytes.TrimRight(body, " ")...)
+			out = append(out, '\n')
+		} else {
+			out = append(out, line...)
+		}
+	}
+	if _, err := t.w.Write(out); err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }
 
 // Formatter defines the interface for output formatting
