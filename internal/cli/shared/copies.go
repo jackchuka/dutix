@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jackchuka/dutix/internal/domain"
+	"github.com/jackchuka/dutix/internal/formatter"
 	"github.com/spf13/cobra"
 )
 
@@ -37,6 +38,32 @@ type Copies struct {
 	opts    CopyOptions
 	managed bool               // The app has a bundle ID, so copies can be managed
 	report  *domain.CopyReport // Copies before applying; nil if listing them failed
+
+	registered   bool     // Apply registered the app
+	unregistered []string // Apply unregistered these other copies
+}
+
+// Report describes what applying plan did, for JSON or YAML output.
+// results are the apply results, or the plan items for a dry run.
+func (c *Copies) Report(results []domain.ApplyResult, dryRun bool) domain.Report {
+	r := domain.NewReport(c.app, results, dryRun)
+	r.Registered = c.registered
+	r.Unregistered = c.unregistered
+	return r
+}
+
+// PrintReport prints the report as JSON or YAML
+func (c *Copies) PrintReport(results []domain.ApplyResult, dryRun bool) error {
+	return formatter.Encode(c.ctx.OutputMode, nil, c.Report(results, dryRun))
+}
+
+// PlanResults wraps plan items as results, to report a plan without applying it
+func PlanResults(plan *domain.Plan) []domain.ApplyResult {
+	results := make([]domain.ApplyResult, len(plan.Items))
+	for i, item := range plan.Items {
+		results[i] = domain.ApplyResult{Item: item}
+	}
+	return results
 }
 
 // PreviewCopies describes the other registered copies of app's bundle ID
@@ -55,7 +82,7 @@ func PreviewCopies(ctx *Context, app *domain.App, opts CopyOptions) *Copies {
 
 	others := report.Others()
 	registered := report.Registered()
-	if !ctx.QuietMode {
+	if ctx.Human() {
 		if len(others) > 0 || (!registered && !opts.NoRegister) {
 			ctx.Section()
 		}
@@ -111,9 +138,12 @@ func (c *Copies) Apply(plan *domain.Plan) ([]domain.ApplyResult, error) {
 	if c.managed && !c.opts.NoRegister && (c.report == nil || !c.report.Registered()) {
 		if err := b.RegisterApplication(c.app.Path); err != nil {
 			c.ctx.Warnf("failed to register %s: %v", c.app.Path, err)
-		} else if !c.ctx.QuietMode {
-			c.ctx.Section()
-			fmt.Printf("Registered %s\n", c.app.Path)
+		} else {
+			c.registered = true
+			if c.ctx.Human() {
+				c.ctx.Section()
+				fmt.Printf("Registered %s\n", c.app.Path)
+			}
 		}
 	}
 
@@ -129,7 +159,8 @@ func (c *Copies) Apply(plan *domain.Plan) ([]domain.ApplyResult, error) {
 	if ensureErr != nil {
 		c.ctx.Warnf("%v", ensureErr)
 	}
-	if !c.ctx.QuietMode && len(res.Unregistered) > 0 {
+	c.unregistered = res.Unregistered
+	if c.ctx.Human() && len(res.Unregistered) > 0 {
 		c.ctx.Section()
 		for _, p := range res.Unregistered {
 			fmt.Printf("Unregistered %s\n", p)

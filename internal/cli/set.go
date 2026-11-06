@@ -37,6 +37,9 @@ macOS stores defaults by bundle ID. When several copies share a bundle ID,
 defaults resolve to the one with the highest CFBundleVersion (then by path).
 Use --prune-others to unregister the other copies, so the chosen one wins.
 
+With --output json or yaml, only a report of the outcome is printed, for
+scripts; this needs --yes or --dry-run.
+
 You can specify targets using:
   --extensions: File extensions (e.g., txt,md,json)
   --utis: Direct UTI identifiers (e.g., public.plain-text)
@@ -48,7 +51,8 @@ Examples:
   dutix set TextEdit --extensions txt --dry-run
   dutix set Finder --extensions zip,tar --yes
   dutix set com.microsoft.VSCode --extensions md
-  dutix set ~/Applications/Foo.app --extensions md --prune-others --yes`,
+  dutix set ~/Applications/Foo.app --extensions md --prune-others --yes
+  dutix --output json set Safari --schemes http --yes`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := shared.GetContext(cmd)
@@ -57,6 +61,11 @@ Examples:
 			}
 
 			appName := args[0]
+
+			// JSON and YAML output have no room for the prompt
+			if !ctx.Table() && !skipConfirmation && !dryRun {
+				return fmt.Errorf("--output %s needs --yes or --dry-run", ctx.OutputMode)
+			}
 
 			// Parse target specifications
 			targets, err := shared.ParseTargetSpecs(extensions, utis, schemes)
@@ -86,7 +95,7 @@ Examples:
 			// Display preview. With --yes, the results table follows right
 			// away, so the plan table is only shown for --dry-run or before
 			// the prompt.
-			if !ctx.QuietMode {
+			if ctx.Human() {
 				ctx.Section()
 				fmt.Printf("Application: %s\n", selectedApp.Name)
 				fmt.Printf("Path: %s\n", selectedApp.Path)
@@ -112,6 +121,9 @@ Examples:
 
 			// Dry run - just preview
 			if dryRun {
+				if !ctx.Table() {
+					return copies.PrintReport(shared.PlanResults(plan), true)
+				}
 				ctx.Section()
 				fmt.Println("Dry run - no changes made.")
 				return nil
@@ -141,7 +153,10 @@ Examples:
 			}
 
 			// Display results
-			if !ctx.QuietMode {
+			if !ctx.Table() {
+				return copies.PrintReport(results, false)
+			}
+			if ctx.Human() {
 				if err := shared.DisplayResults(ctx, results); err != nil {
 					return err
 				}

@@ -42,6 +42,11 @@ Examples:
 			fromAppQuery := args[0]
 			toAppQuery := args[1]
 
+			// JSON and YAML output have no room for the prompt
+			if !ctx.Table() && !skipConfirmation && !dryRun {
+				return fmt.Errorf("--output %s needs --yes or --dry-run", ctx.OutputMode)
+			}
+
 			// Find source app
 			resolver := domain.NewResolver(ctx.Bridge)
 			fromApp, err := resolver.Resolve(fromAppQuery)
@@ -54,6 +59,21 @@ Examples:
 			if err != nil {
 				return err
 			}
+
+			// nothingToMigrate explains why there is nothing to do, or prints
+			// an empty report for JSON or YAML output
+			nothingToMigrate := func(lines ...string) error {
+				if !ctx.Table() {
+					return formatter.Encode(ctx.OutputMode, nil, domain.NewReport(toApp, nil, dryRun))
+				}
+				if !ctx.QuietMode {
+					for _, line := range lines {
+						fmt.Println(line)
+					}
+				}
+				return nil
+			}
+
 			// Get document types supported by source app
 			fromDocTypes, err := ctx.Bridge.ListSupportedDocumentTypes(fromApp.Path)
 			if err != nil {
@@ -61,10 +81,7 @@ Examples:
 			}
 
 			if len(fromDocTypes) == 0 {
-				if !ctx.QuietMode {
-					fmt.Printf("%s does not declare any document type associations.\n", fromApp.Name)
-				}
-				return nil
+				return nothingToMigrate(fmt.Sprintf("%s does not declare any document type associations.", fromApp.Name))
 			}
 
 			// Only migrate extensions that target app actually supports
@@ -87,10 +104,7 @@ Examples:
 			}
 
 			if len(targets) == 0 {
-				if !ctx.QuietMode {
-					fmt.Printf("No compatible extensions found between %s and %s.\n", fromApp.Name, toApp.Name)
-				}
-				return nil
+				return nothingToMigrate(fmt.Sprintf("No compatible extensions found between %s and %s.", fromApp.Name, toApp.Name))
 			}
 
 			// Build plan
@@ -98,11 +112,10 @@ Examples:
 			if err != nil {
 				// Check if all extensions were filtered out due to system UTIs
 				if err == domain.ErrPlanNoValidItems {
-					if !ctx.QuietMode {
-						fmt.Printf("No file types to migrate from %s to %s.\n", fromApp.Name, toApp.Name)
-						fmt.Println("Note: Some extensions may have been skipped because they resolve to system-internal UTIs.")
-					}
-					return nil
+					return nothingToMigrate(
+						fmt.Sprintf("No file types to migrate from %s to %s.", fromApp.Name, toApp.Name),
+						"Note: Some extensions may have been skipped because they resolve to system-internal UTIs.",
+					)
 				}
 				return fmt.Errorf("failed to build migration plan: %w", err)
 			}
@@ -110,14 +123,14 @@ Examples:
 			// Display preview. With --yes, the results table follows right
 			// away, so the plan table is only shown for --dry-run or before
 			// the prompt.
-			if !ctx.QuietMode {
+			if ctx.Human() {
 				ctx.Section()
 				fmt.Printf("Migrating file associations from %s to %s\n", fromApp.Name, toApp.Name)
 				if plan.Settled() {
 					fmt.Printf("%s already opens all %d file type(s).\n", toApp.Name, len(plan.Items))
 				} else if dryRun || !skipConfirmation {
 					ctx.Section()
-					f := formatter.New(ctx.OutputMode, nil)
+					f := formatter.New("table", nil)
 					if err := f.FormatPlan(plan); err != nil {
 						return err
 					}
@@ -129,6 +142,9 @@ Examples:
 
 			// Dry run - just preview
 			if dryRun {
+				if !ctx.Table() {
+					return copies.PrintReport(shared.PlanResults(plan), true)
+				}
 				ctx.Section()
 				fmt.Println("Dry run - no changes made.")
 				return nil
@@ -158,7 +174,10 @@ Examples:
 			}
 
 			// Display results
-			if !ctx.QuietMode {
+			if !ctx.Table() {
+				return copies.PrintReport(results, false)
+			}
+			if ctx.Human() {
 				if err := shared.DisplayResults(ctx, results); err != nil {
 					return err
 				}
