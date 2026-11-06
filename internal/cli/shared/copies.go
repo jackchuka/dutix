@@ -2,7 +2,6 @@ package shared
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/jackchuka/dutix/internal/domain"
 	"github.com/spf13/cobra"
@@ -21,10 +20,6 @@ func AddCopyFlags(cmd *cobra.Command, opts *CopyOptions) {
 		"After applying, unregister other copies with the same bundle ID so defaults resolve to this one")
 	cmd.Flags().BoolVar(&opts.NoRegister, "no-register", false,
 		"Don't register the app with LaunchServices before applying")
-}
-
-func warnf(format string, a ...any) {
-	_, _ = fmt.Fprintf(os.Stderr, "Warning: "+format+"\n", a...)
 }
 
 func versionSuffix(v string) string {
@@ -53,7 +48,7 @@ func PreviewCopies(ctx *Context, app *domain.App, opts CopyOptions) *Copies {
 	}
 	report, err := domain.InspectCopies(ctx.Bridge, app)
 	if err != nil {
-		warnf("%v", err)
+		ctx.Warnf("%v", err)
 		return c
 	}
 	c.report = &report
@@ -61,6 +56,9 @@ func PreviewCopies(ctx *Context, app *domain.App, opts CopyOptions) *Copies {
 	others := report.Others()
 	registered := report.Registered()
 	if !ctx.QuietMode {
+		if len(others) > 0 || (!registered && !opts.NoRegister) {
+			ctx.Section()
+		}
 		if len(others) > 0 {
 			if opts.PruneOthers {
 				fmt.Println("Other registered copies (will be unregistered):")
@@ -74,13 +72,10 @@ func PreviewCopies(ctx *Context, app *domain.App, opts CopyOptions) *Copies {
 		if !registered && !opts.NoRegister {
 			fmt.Printf("%s is not registered with LaunchServices yet; it will be registered before applying.\n", app.Path)
 		}
-		if len(others) > 0 || !registered {
-			fmt.Println()
-		}
 	}
 
 	if w := report.Winner(); w != nil && !w.Chosen && !opts.PruneOthers {
-		warnf("%s%s outranks %s; defaults will resolve to it. Use --prune-others.",
+		ctx.Warnf("%s%s outranks %s; defaults will resolve to it. Use --prune-others.",
 			w.Path, versionSuffix(w.Version), app.Path)
 	}
 	return c
@@ -115,9 +110,10 @@ func (c *Copies) Apply(plan *domain.Plan) ([]domain.ApplyResult, error) {
 	b := c.ctx.Bridge
 	if c.managed && !c.opts.NoRegister && (c.report == nil || !c.report.Registered()) {
 		if err := b.RegisterApplication(c.app.Path); err != nil {
-			warnf("failed to register %s: %v", c.app.Path, err)
+			c.ctx.Warnf("failed to register %s: %v", c.app.Path, err)
 		} else if !c.ctx.QuietMode {
-			fmt.Printf("Registered %s\n\n", c.app.Path)
+			c.ctx.Section()
+			fmt.Printf("Registered %s\n", c.app.Path)
 		}
 	}
 
@@ -131,9 +127,10 @@ func (c *Copies) Apply(plan *domain.Plan) ([]domain.ApplyResult, error) {
 		Prune:    c.opts.PruneOthers,
 	})
 	if ensureErr != nil {
-		warnf("%v", ensureErr)
+		c.ctx.Warnf("%v", ensureErr)
 	}
-	if !c.ctx.QuietMode {
+	if !c.ctx.QuietMode && len(res.Unregistered) > 0 {
+		c.ctx.Section()
 		for _, p := range res.Unregistered {
 			fmt.Printf("Unregistered %s\n", p)
 		}
@@ -143,7 +140,7 @@ func (c *Copies) Apply(plan *domain.Plan) ([]domain.ApplyResult, error) {
 		if c.opts.PruneOthers {
 			hint = ""
 		}
-		warnf("defaults for %s resolve to %s%s, not %s.%s",
+		c.ctx.Warnf("defaults for %s resolve to %s%s, not %s.%s",
 			c.app.BundleID, w.Path, versionSuffix(w.Version), c.app.Path, hint)
 	}
 	return results, nil

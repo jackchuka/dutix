@@ -87,6 +87,7 @@ Examples:
 			// away, so the plan table is only shown for --dry-run or before
 			// the prompt.
 			if !ctx.QuietMode {
+				ctx.Section()
 				fmt.Printf("Application: %s\n", selectedApp.Name)
 				fmt.Printf("Path: %s\n", selectedApp.Path)
 				if selectedApp.BundleID != "" {
@@ -97,12 +98,11 @@ Examples:
 				} else {
 					fmt.Printf("Targets: %d\n", len(plan.Items))
 					if dryRun || !skipConfirmation {
-						fmt.Println()
+						ctx.Section()
 						f := formatter.New("table", nil)
 						if err := f.FormatPlan(plan); err != nil {
 							return err
 						}
-						fmt.Println()
 					}
 				}
 			}
@@ -112,6 +112,7 @@ Examples:
 
 			// Dry run - just preview
 			if dryRun {
+				ctx.Section()
 				fmt.Println("Dry run - no changes made.")
 				return nil
 			}
@@ -119,6 +120,7 @@ Examples:
 			// Confirm unless --yes flag, or there is nothing to confirm
 			pending, _, _, _ := plan.Stats()
 			if !skipConfirmation && (pending > 0 || copies.WillChange()) {
+				ctx.Section()
 				fmt.Print("Apply these changes? (y/N): ")
 				reader := bufio.NewReader(os.Stdin)
 				response, err := reader.ReadString('\n')
@@ -140,7 +142,7 @@ Examples:
 
 			// Display results
 			if !ctx.QuietMode {
-				if err := shared.DisplayResults(results); err != nil {
+				if err := shared.DisplayResults(ctx, results); err != nil {
 					return err
 				}
 			}
