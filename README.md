@@ -89,7 +89,6 @@ Set default application for file extensions, UTIs, or URL schemes.
 - `--dry-run` - Preview changes without applying
 - `--yes` - Skip confirmation prompt
 - `--prune-others` - After applying, unregister other copies with the same bundle ID so defaults resolve to this one
-- `--no-register` - Don't register the app with LaunchServices before applying
 
 **Examples:**
 
@@ -134,7 +133,7 @@ dutix apps list --output json
 
 #### `dutix apps show <app>`
 
-Show detailed information about an application including supported file types and UTIs, and every registered copy of its bundle ID in the order LaunchServices prefers them.
+Show detailed information about an application including supported file types and UTIs, and every registered copy of its bundle ID, starting with the one LaunchServices prefers.
 
 **Examples:**
 
@@ -153,7 +152,7 @@ Migrate all file type associations from one application to another.
 
 - `--dry-run` - Preview migration without applying changes
 - `--yes` - Skip confirmation prompt
-- `--prune-others`, `--no-register` - Same as for `dutix set`, applied to `<to-app>`
+- `--prune-others` - Same as for `dutix set`, applied to `<to-app>`
 
 **Examples:**
 

@@ -8,19 +8,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// CopyOptions are the flags controlling LaunchServices registration of the
-// application and of other copies of its bundle ID
+// CopyOptions are the flags controlling other copies of the app's bundle ID
 type CopyOptions struct {
 	PruneOthers bool
-	NoRegister  bool
 }
 
-// AddCopyFlags registers --prune-others and --no-register on cmd
+// AddCopyFlags registers --prune-others on cmd
 func AddCopyFlags(cmd *cobra.Command, opts *CopyOptions) {
 	cmd.Flags().BoolVar(&opts.PruneOthers, "prune-others", false,
 		"After applying, unregister other copies with the same bundle ID so defaults resolve to this one")
-	cmd.Flags().BoolVar(&opts.NoRegister, "no-register", false,
-		"Don't register the app with LaunchServices before applying")
 }
 
 func versionSuffix(v string) string {
@@ -82,15 +78,12 @@ func PreviewCopies(ctx *Context, app *domain.App, opts CopyOptions) *Copies {
 
 	others := report.Others()
 	registered := report.Registered()
-	if opts.PruneOthers && !registered && opts.NoRegister {
-		ctx.Warnf("%s is not registered and --no-register is set, so --prune-others will keep the other copies.", app.Path)
-	}
 	if ctx.Human() {
-		if len(others) > 0 || (!registered && !opts.NoRegister) {
+		if len(others) > 0 || !registered {
 			ctx.Section()
 		}
 		if len(others) > 0 {
-			if c.willPrune() {
+			if opts.PruneOthers {
 				fmt.Println("Other registered copies (will be unregistered):")
 			} else {
 				fmt.Println("Other registered copies:")
@@ -99,7 +92,7 @@ func PreviewCopies(ctx *Context, app *domain.App, opts CopyOptions) *Copies {
 				fmt.Printf("  %s%s\n", o.Path, versionSuffix(o.Version))
 			}
 		}
-		if !registered && !opts.NoRegister {
+		if !registered {
 			fmt.Printf("%s is not registered with LaunchServices yet; it will be registered before applying.\n", app.Path)
 		}
 	}
@@ -120,14 +113,8 @@ func (c *Copies) WillChange() bool {
 	if c.report == nil {
 		return true
 	}
-	return (!c.opts.NoRegister && !c.report.Registered()) ||
-		(c.willPrune() && len(c.report.Others()) > 0)
-}
-
-// willPrune reports whether Apply will try to unregister the other copies.
-// EnsureWinner only prunes once the chosen copy is registered.
-func (c *Copies) willPrune() bool {
-	return c.opts.PruneOthers && (!c.opts.NoRegister || (c.report != nil && c.report.Registered()))
+	return !c.report.Registered() ||
+		(c.opts.PruneOthers && len(c.report.Others()) > 0)
 }
 
 // Apply applies plan. It first registers the app if needed, since defaults
@@ -139,12 +126,12 @@ func (c *Copies) willPrune() bool {
 // default by extension restarts lsd, which drops unsaved changes. An
 // unregistration made before applying would be dropped, and repeating it
 // right after the restart was not saved either (macOS 27.2; see "Registration
-// Functions" in the macos-apphandlers-bridge fork's README). Changes made
+// Functions" in the macos-apphandlers-bridge README). Changes made
 // after the restart, including re-registering a dropped registration, are
 // saved.
 func (c *Copies) Apply(plan *domain.Plan) ([]domain.ApplyResult, error) {
 	b := c.ctx.Bridge
-	if c.managed && !c.opts.NoRegister && (c.report == nil || !c.report.Registered()) {
+	if c.managed && (c.report == nil || !c.report.Registered()) {
 		if err := b.RegisterApplication(c.app.Path); err != nil {
 			c.ctx.Warnf("failed to register %s: %v", c.app.Path, err)
 		} else {
@@ -161,10 +148,8 @@ func (c *Copies) Apply(plan *domain.Plan) ([]domain.ApplyResult, error) {
 		return results, err
 	}
 
-	res, ensureErr := domain.EnsureWinner(b, c.app, domain.EnsureOptions{
-		Register: !c.opts.NoRegister, // again, in case an lsd restart dropped it
-		Prune:    c.opts.PruneOthers,
-	})
+	// Registers again if an lsd restart dropped the registration above
+	res, ensureErr := domain.EnsureWinner(b, c.app, domain.EnsureOptions{Prune: c.opts.PruneOthers})
 	if ensureErr != nil {
 		c.ctx.Warnf("%v", ensureErr)
 	}

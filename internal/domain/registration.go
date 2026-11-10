@@ -100,8 +100,7 @@ func (r CopyReport) fillVersions(b macos.Bridge, app *App) {
 
 // EnsureOptions controls EnsureWinner
 type EnsureOptions struct {
-	Register bool // Register the chosen copy with LaunchServices if it isn't
-	Prune    bool // Unregister every other copy of the bundle ID
+	Prune bool // Unregister every other copy of the bundle ID
 }
 
 // EnsureResult is what EnsureWinner did, and the copies afterwards
@@ -116,8 +115,8 @@ func (r EnsureResult) Changed() bool {
 	return r.DidRegister || len(r.Unregistered) > 0
 }
 
-// EnsureWinner tries to make app the copy its bundle ID resolves to: with
-// Register it registers app.Path if it isn't registered yet, and with Prune it
+// EnsureWinner tries to make app the copy its bundle ID resolves to: it
+// registers app.Path if it isn't registered yet, and with Prune it
 // unregisters the other copies. It returns what it changed and the copies
 // afterwards, plus any registration errors.
 //
@@ -133,7 +132,7 @@ func EnsureWinner(b macos.Bridge, app *App, opts EnsureOptions) (EnsureResult, e
 
 	var res EnsureResult
 	var errs []error
-	if opts.Register && !before.Registered() {
+	if !before.Registered() {
 		if err := b.RegisterApplication(app.Path); err != nil {
 			errs = append(errs, fmt.Errorf("failed to register %s: %w", app.Path, err))
 		} else {
