@@ -117,9 +117,12 @@ func (r EnsureResult) Changed() bool {
 }
 
 // EnsureWinner tries to make app the copy its bundle ID resolves to: with
-// Prune it unregisters the other copies, and with Register it registers
-// app.Path if it isn't registered yet. It returns what it changed and the
-// copies afterwards, plus any registration errors.
+// Register it registers app.Path if it isn't registered yet, and with Prune it
+// unregisters the other copies. It returns what it changed and the copies
+// afterwards, plus any registration errors.
+//
+// Prune only runs once app.Path is listed as registered. Otherwise it would
+// unregister every copy and leave the bundle ID with no app to open its files.
 //
 // Call it with Prune only after setting defaults; see Copies.Apply.
 func EnsureWinner(b macos.Bridge, app *App, opts EnsureOptions) (EnsureResult, error) {
@@ -130,20 +133,34 @@ func EnsureWinner(b macos.Bridge, app *App, opts EnsureOptions) (EnsureResult, e
 
 	var res EnsureResult
 	var errs []error
-	if opts.Prune {
-		for _, c := range before.Others() {
-			if err := b.UnregisterApplication(c.Path); err != nil {
-				errs = append(errs, fmt.Errorf("failed to unregister %s: %w", c.Path, err))
-				continue
-			}
-			res.Unregistered = append(res.Unregistered, c.Path)
-		}
-	}
 	if opts.Register && !before.Registered() {
 		if err := b.RegisterApplication(app.Path); err != nil {
 			errs = append(errs, fmt.Errorf("failed to register %s: %w", app.Path, err))
 		} else {
 			res.DidRegister = true
+			// LaunchServices ignores some locations, so check that the
+			// registration took before pruning against it
+			if opts.Prune {
+				after, err := listCopies(b, app)
+				if err != nil {
+					errs = append(errs, err)
+				} else {
+					before = after
+				}
+			}
+		}
+	}
+	if opts.Prune {
+		if before.Registered() {
+			for _, c := range before.Others() {
+				if err := b.UnregisterApplication(c.Path); err != nil {
+					errs = append(errs, fmt.Errorf("failed to unregister %s: %w", c.Path, err))
+					continue
+				}
+				res.Unregistered = append(res.Unregistered, c.Path)
+			}
+		} else {
+			errs = append(errs, fmt.Errorf("not unregistering other copies: %s is not registered with LaunchServices", app.Path))
 		}
 	}
 

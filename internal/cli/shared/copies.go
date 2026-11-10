@@ -82,12 +82,15 @@ func PreviewCopies(ctx *Context, app *domain.App, opts CopyOptions) *Copies {
 
 	others := report.Others()
 	registered := report.Registered()
+	if opts.PruneOthers && !registered && opts.NoRegister {
+		ctx.Warnf("%s is not registered and --no-register is set, so --prune-others will keep the other copies.", app.Path)
+	}
 	if ctx.Human() {
 		if len(others) > 0 || (!registered && !opts.NoRegister) {
 			ctx.Section()
 		}
 		if len(others) > 0 {
-			if opts.PruneOthers {
+			if c.willPrune() {
 				fmt.Println("Other registered copies (will be unregistered):")
 			} else {
 				fmt.Println("Other registered copies:")
@@ -118,7 +121,13 @@ func (c *Copies) WillChange() bool {
 		return true
 	}
 	return (!c.opts.NoRegister && !c.report.Registered()) ||
-		(c.opts.PruneOthers && len(c.report.Others()) > 0)
+		(c.willPrune() && len(c.report.Others()) > 0)
+}
+
+// willPrune reports whether Apply will try to unregister the other copies.
+// EnsureWinner only prunes once the chosen copy is registered.
+func (c *Copies) willPrune() bool {
+	return c.opts.PruneOthers && (!c.opts.NoRegister || (c.report != nil && c.report.Registered()))
 }
 
 // Apply applies plan. It first registers the app if needed, since defaults
@@ -159,9 +168,13 @@ func (c *Copies) Apply(plan *domain.Plan) ([]domain.ApplyResult, error) {
 	if ensureErr != nil {
 		c.ctx.Warnf("%v", ensureErr)
 	}
+	c.registered = c.registered || res.DidRegister
 	c.unregistered = res.Unregistered
-	if c.ctx.Human() && len(res.Unregistered) > 0 {
+	if c.ctx.Human() && (res.DidRegister || len(res.Unregistered) > 0) {
 		c.ctx.Section()
+		if res.DidRegister {
+			fmt.Printf("Registered %s\n", c.app.Path)
+		}
 		for _, p := range res.Unregistered {
 			fmt.Printf("Unregistered %s\n", p)
 		}

@@ -121,14 +121,48 @@ func TestEnsureWinner(t *testing.T) {
 			setup: func(m *mocks.MockBridge) {
 				gomock.InOrder(
 					m.EXPECT().ApplicationsForBundleID(id).Return([]string{newerPath}, nil),
-					m.EXPECT().UnregisterApplication(newerPath).Return(nil),
 					m.EXPECT().RegisterApplication(chosenPath).Return(nil),
+					m.EXPECT().ApplicationsForBundleID(id).Return([]string{newerPath, chosenPath}, nil),
+					m.EXPECT().UnregisterApplication(newerPath).Return(nil),
 					m.EXPECT().ApplicationsForBundleID(id).Return([]string{chosenPath}, nil),
 				)
 			},
 			wantWins:       true,
 			wantWinner:     chosenPath,
 			wantUnreg:      []string{newerPath},
+			wantRegistered: true,
+		},
+		{
+			name: "prune without register keeps others when the chosen copy is unregistered",
+			opts: EnsureOptions{Prune: true},
+			setup: func(m *mocks.MockBridge) {
+				m.EXPECT().ApplicationsForBundleID(id).Return([]string{newerPath, otherPath}, nil)
+			},
+			wantErr:    "not unregistering other copies",
+			wantWinner: newerPath,
+		},
+		{
+			name: "prune keeps others when registering fails",
+			opts: EnsureOptions{Register: true, Prune: true},
+			setup: func(m *mocks.MockBridge) {
+				m.EXPECT().ApplicationsForBundleID(id).Return([]string{newerPath}, nil)
+				m.EXPECT().RegisterApplication(chosenPath).Return(errors.New("OSStatus -10811"))
+			},
+			wantErr:    "not unregistering other copies",
+			wantWinner: newerPath,
+		},
+		{
+			name: "prune keeps others when the registration doesn't take",
+			opts: EnsureOptions{Register: true, Prune: true},
+			setup: func(m *mocks.MockBridge) {
+				gomock.InOrder(
+					m.EXPECT().ApplicationsForBundleID(id).Return([]string{newerPath}, nil),
+					m.EXPECT().RegisterApplication(chosenPath).Return(nil),
+					m.EXPECT().ApplicationsForBundleID(id).Return([]string{newerPath}, nil).Times(2),
+				)
+			},
+			wantErr:        "not unregistering other copies",
+			wantWinner:     newerPath,
 			wantRegistered: true,
 		},
 		{
