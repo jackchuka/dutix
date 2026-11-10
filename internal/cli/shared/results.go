@@ -7,43 +7,43 @@ import (
 	"github.com/jackchuka/dutix/internal/formatter"
 )
 
-// DisplayResults shows apply results in table format with summary
-func DisplayResults(results []domain.ApplyResult) error {
-	fmt.Println("\nResults:")
-
+// DisplayResults shows apply results in table format with summary. It prints
+// nothing when no item was changed, declined or warned about, since the
+// preview already said there was nothing to change.
+func DisplayResults(ctx *Context, results []domain.ApplyResult) error {
 	// Build results table
 	resultPlan := &domain.Plan{Items: make([]domain.PlanItem, len(results))}
+	declined := false
 	for i, result := range results {
 		resultPlan.Items[i] = result.Item
+		// Notes describe the state before applying (e.g. which copy opened an
+		// item); copies may have been pruned since
+		resultPlan.Items[i].Note = ""
+		declined = declined || result.Declined
 	}
+
+	if resultPlan.Settled() && !declined {
+		return nil
+	}
+
+	ctx.Section()
+	fmt.Println("Results:")
 
 	f := formatter.New("table", nil)
 	if err := f.FormatPlan(resultPlan); err != nil {
 		return fmt.Errorf("failed to format results: %w", err)
 	}
 
-	// Show summary and collect errors
-	successCount := 0
-	failCount := 0
-	skippedCount := 0
+	// The table's Stats line already counts each status; list the details
 	var failedItems, declinedItems []domain.ApplyResult
-
 	for _, result := range results {
-		switch result.Item.Status {
-		case domain.StatusSuccess:
-			successCount++
-		case domain.StatusFailed:
-			failCount++
+		switch {
+		case result.Item.Status == domain.StatusFailed:
 			failedItems = append(failedItems, result)
-		case domain.StatusSkipped:
-			skippedCount++
-			if result.Declined {
-				declinedItems = append(declinedItems, result)
-			}
+		case result.Declined:
+			declinedItems = append(declinedItems, result)
 		}
 	}
-
-	fmt.Printf("\nSuccess: %d, Failed: %d, Skipped: %d\n", successCount, failCount, skippedCount)
 
 	if len(declinedItems) > 0 {
 		fmt.Println("\nKept current app (declined in the confirmation dialog):")
@@ -53,7 +53,7 @@ func DisplayResults(results []domain.ApplyResult) error {
 	}
 
 	// Show detailed errors for failed items
-	if failCount > 0 {
+	if len(failedItems) > 0 {
 		fmt.Println("\nFailed items:")
 		for _, result := range failedItems {
 			targetStr := fmt.Sprintf("%s:%s", result.Item.Target.Kind, result.Item.Target.Identifier)

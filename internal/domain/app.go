@@ -21,6 +21,7 @@ func fromMacOSAppInfo(info macos.AppInfo) App {
 		Name:     info.Name,
 		Path:     info.Path,
 		BundleID: info.BundleID,
+		Version:  info.Version,
 	}
 }
 

@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -33,6 +34,7 @@ type App struct {
 	Name     string `yaml:"name" json:"name"`                               // Display name (e.g., "Visual Studio Code")
 	BundleID string `yaml:"bundle_id,omitempty" json:"bundle_id,omitempty"` // Bundle identifier (optional, e.g., "com.microsoft.VSCode")
 	Path     string `yaml:"path" json:"path"`                               // Canonical path to .app bundle (e.g., "/Applications/Visual Studio Code.app")
+	Version  string `yaml:"version,omitempty" json:"version,omitempty"`     // CFBundleVersion, when known
 }
 
 // PlanItemStatus represents the execution status of a plan item
@@ -58,6 +60,7 @@ type PlanItem struct {
 	DesiredApp *App           // Desired default app
 	Status     PlanItemStatus // Execution status
 	Warning    string         // Optional warning message
+	Note       string         // Optional informational message
 }
 
 // Plan represents a complete set of changes
@@ -77,12 +80,27 @@ type ApplyResult struct {
 	Notes    string   // Additional notes (e.g., "User declined permission prompt")
 }
 
-// IsNoOp returns true if this plan item is a no-op (current == desired)
+// IsNoOp returns true if this plan item is a no-op: the current default is
+// the desired app, either the same bundle or another copy with the same
+// bundle ID. LaunchServices stores defaults by bundle ID, so setting it again
+// would change nothing (and on macOS 26.4+ would show a confirmation dialog).
+// Which copy opens it is up to LaunchServices' ranking of the copies.
 func (p *PlanItem) IsNoOp() bool {
 	if p.CurrentApp == nil || p.DesiredApp == nil {
 		return false
 	}
-	return p.CurrentApp.Path == p.DesiredApp.Path
+	return p.CurrentApp.Path == p.DesiredApp.Path || p.SameBundleID()
+}
+
+// SameBundleID reports whether the current default is another copy of the
+// desired app: a different path with the same bundle ID
+func (p *PlanItem) SameBundleID() bool {
+	if p.CurrentApp == nil || p.DesiredApp == nil {
+		return false
+	}
+	return p.CurrentApp.Path != p.DesiredApp.Path &&
+		p.CurrentApp.BundleID != "" &&
+		strings.EqualFold(p.CurrentApp.BundleID, p.DesiredApp.BundleID)
 }
 
 // SetsByExtension reports whether the target must be applied by file extension
@@ -146,6 +164,60 @@ func (p *Plan) ConfirmableChanges() int {
 		}
 	}
 	return n
+}
+
+// Report is the machine-readable outcome of setting defaults for an app
+type Report struct {
+	App          App          `yaml:"app" json:"app"`
+	DryRun       bool         `yaml:"dry_run" json:"dry_run"`
+	Items        []ReportItem `yaml:"items" json:"items"`
+	Registered   bool         `yaml:"registered" json:"registered"`                         // The app was registered with LaunchServices
+	Unregistered []string     `yaml:"unregistered,omitempty" json:"unregistered,omitempty"` // Other copies unregistered with --prune-others
+}
+
+// ReportItem is the outcome for one target
+type ReportItem struct {
+	Target    string         `yaml:"target" json:"target"` // kind:identifier, e.g. "scheme:http"
+	Extension string         `yaml:"extension,omitempty" json:"extension,omitempty"`
+	Current   string         `yaml:"current,omitempty" json:"current,omitempty"` // Path of the default app before applying
+	Status    PlanItemStatus `yaml:"status" json:"status"`
+	Declined  bool           `yaml:"declined,omitempty" json:"declined,omitempty"` // The user kept the current app in the confirmation dialog
+	Warning   string         `yaml:"warning,omitempty" json:"warning,omitempty"`
+	Error     string         `yaml:"error,omitempty" json:"error,omitempty"`
+}
+
+// NewReport builds a report for app from apply results. For a dry run, wrap
+// the plan items in results without applying them.
+func NewReport(app *App, results []ApplyResult, dryRun bool) Report {
+	r := Report{App: *app, DryRun: dryRun, Items: make([]ReportItem, len(results))}
+	for i, res := range results {
+		item := ReportItem{
+			Target:    fmt.Sprintf("%s:%s", res.Item.Target.Kind, res.Item.Target.Identifier),
+			Extension: res.Item.Target.Extension,
+			Status:    res.Item.Status,
+			Declined:  res.Declined,
+			Warning:   res.Item.Warning,
+		}
+		if res.Item.CurrentApp != nil {
+			item.Current = res.Item.CurrentApp.Path
+		}
+		if res.Error != nil {
+			item.Error = res.Error.Error()
+		}
+		r.Items[i] = item
+	}
+	return r
+}
+
+// Settled reports whether every item is skipped without a warning, so there is
+// nothing to change and nothing to point out
+func (p *Plan) Settled() bool {
+	for _, item := range p.Items {
+		if item.Status != StatusSkipped || item.Warning != "" {
+			return false
+		}
+	}
+	return true
 }
 
 // HasWarnings returns true if any items have warnings

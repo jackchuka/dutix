@@ -1,6 +1,8 @@
 package formatter
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -54,8 +56,30 @@ func (t Theme) formatStatus(status domain.PlanItemStatus) string {
 func (t Theme) newStyledTable(w io.Writer, headers ...any) table.Table {
 	tbl := table.New(headers...)
 	tbl.WithHeaderFormatter(t.Header).WithFirstColumnFormatter(t.FirstColumn)
-	tbl.WithWriter(w)
+	tbl.WithWriter(trimWriter{w})
 	return tbl
+}
+
+// trimWriter drops trailing spaces from each line. The table library pads
+// every column, including the last, to the column's width.
+type trimWriter struct {
+	w io.Writer
+}
+
+func (t trimWriter) Write(p []byte) (int, error) {
+	out := make([]byte, 0, len(p))
+	for _, line := range bytes.SplitAfter(p, []byte("\n")) {
+		if body, ok := bytes.CutSuffix(line, []byte("\n")); ok {
+			out = append(out, bytes.TrimRight(body, " ")...)
+			out = append(out, '\n')
+		} else {
+			out = append(out, line...)
+		}
+	}
+	if _, err := t.w.Write(out); err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }
 
 // Formatter defines the interface for output formatting
@@ -66,6 +90,7 @@ type Formatter interface {
 		app domain.App,
 		supportedTypes []domain.DocumentType,
 		defaultTypes []domain.DocumentType,
+		copies []domain.AppCopy,
 	) error
 	FormatTargetDetails(
 		target domain.Target,
@@ -74,6 +99,33 @@ type Formatter interface {
 		availableApps []string,
 	) error
 	FormatExtensionDefaults(rows []domain.ExtensionDefault) error
+}
+
+// IsTable reports whether format is the human-readable table format, which is
+// also the fallback for unknown formats
+func IsTable(format string) bool {
+	switch strings.ToLower(format) {
+	case "json", "yaml":
+		return false
+	default:
+		return true
+	}
+}
+
+// Encode writes data as JSON or YAML, for commands whose output has no table
+// form
+func Encode(format string, w io.Writer, data any) error {
+	if w == nil {
+		w = os.Stdout
+	}
+	switch strings.ToLower(format) {
+	case "json":
+		return (&JSONFormatter{w: w}).encodeData(data)
+	case "yaml":
+		return (&YAMLFormatter{w: w}).encodeData(data)
+	default:
+		return fmt.Errorf("unsupported output format for encoding: %s", format)
+	}
 }
 
 // New creates a formatter based on the specified format type

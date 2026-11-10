@@ -2,8 +2,10 @@ package shared
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/jackchuka/dutix/internal/domain"
+	"github.com/jackchuka/dutix/internal/formatter"
 	"github.com/jackchuka/dutix/internal/macos"
 	"github.com/spf13/cobra"
 )
@@ -22,6 +24,37 @@ type Context struct {
 	DebugMode  bool
 	QuietMode  bool
 	OutputMode string
+
+	started bool // Some output was printed, so the next section needs a gap
+}
+
+// Table reports whether output is human-readable rather than JSON or YAML
+func (c *Context) Table() bool {
+	return formatter.IsTable(c.OutputMode)
+}
+
+// Human reports whether to print human-readable messages: output is a table
+// and --quiet is off. Warnings are printed either way, to stderr.
+func (c *Context) Human() bool {
+	return c.Table() && !c.QuietMode
+}
+
+// Section starts a block of output. Blocks are separated by one blank line,
+// with none before the first or after the last.
+func (c *Context) Section() {
+	if !c.Human() {
+		return
+	}
+	if c.started {
+		fmt.Println()
+	}
+	c.started = true
+}
+
+// Warnf prints a warning to stderr as its own section
+func (c *Context) Warnf(format string, a ...any) {
+	c.Section()
+	_, _ = fmt.Fprintf(os.Stderr, "Warning: "+format+"\n", a...)
 }
 
 // GetContext retrieves the CLI context from a cobra command

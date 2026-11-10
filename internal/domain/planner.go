@@ -45,7 +45,8 @@ func isDynamicUTI(uti string) bool {
 
 // Planner is responsible for building execution plans
 type Planner struct {
-	bridge macos.Bridge
+	bridge    macos.Bridge
+	bundleIDs map[string]string // Bundle ID by app path, for current defaults
 }
 
 // NewPlanner creates a new planner
@@ -99,6 +100,10 @@ func (p *Planner) BuildPlan(desiredApp *App, targets []Target) (*Plan, error) {
 			// Skip no-op items
 			if item.IsNoOp() {
 				item.Status = StatusSkipped
+				if item.SameBundleID() {
+					item.Note = fmt.Sprintf("unchanged: the default is already %s, but it currently opens %s",
+						item.CurrentApp.BundleID, item.CurrentApp.Path)
+				}
 			}
 
 			// Add warnings for problematic targets
@@ -107,7 +112,9 @@ func (p *Planner) BuildPlan(desiredApp *App, targets []Target) (*Plan, error) {
 			// Dynamic UTIs can only be set through the extension that produced them.
 			if resolvedTarget.Kind == TargetKindUTI && isDynamicUTI(resolvedTarget.Identifier) {
 				if resolvedTarget.SetsByExtension() {
-					item.Warning = fmt.Sprintf(".%s is not declared by any application; it will be set by extension (same as Finder's \"Change All\")", resolvedTarget.Extension)
+					if item.Status == StatusPending {
+						item.Warning = fmt.Sprintf(".%s is not declared by any application; it will be set by extension (same as Finder's \"Change All\")", resolvedTarget.Extension)
+					}
 				} else {
 					item.Status = StatusSkipped
 					item.Warning = fmt.Sprintf("%s is a dynamic UTI; use --extensions to set it by file extension", resolvedTarget.Identifier)
@@ -194,6 +201,10 @@ func (p *Planner) createPlanItem(desiredApp *App, target Target) (PlanItem, erro
 			Path: currentAppPath,
 			Name: extractAppName(currentAppPath),
 		}
+		// Another copy may be the default under the same bundle ID
+		if desiredApp.BundleID != "" && currentAppPath != desiredApp.Path {
+			item.CurrentApp.BundleID = p.bundleIDAt(currentAppPath)
+		}
 	}
 	// If there's no current app or we can't determine it, that's okay
 	// (item.CurrentApp will be nil)
@@ -201,9 +212,26 @@ func (p *Planner) createPlanItem(desiredApp *App, target Target) (PlanItem, erro
 	return item, nil
 }
 
+// bundleIDAt returns the bundle ID of the app at path, or "" if it can't be
+// read. Results are cached: many targets usually share a few handlers.
+func (p *Planner) bundleIDAt(path string) string {
+	if id, ok := p.bundleIDs[path]; ok {
+		return id
+	}
+	var id string
+	if info, err := p.bridge.AppInfoAtPath(path); err == nil {
+		id = info.BundleID
+	}
+	if p.bundleIDs == nil {
+		p.bundleIDs = make(map[string]string)
+	}
+	p.bundleIDs[path] = id
+	return id
+}
+
 // addWarnings adds warnings to a plan item for known issues
 func (p *Planner) addWarnings(item *PlanItem) {
-	if item.Target.NeedsUserConfirmation() {
+	if item.Status == StatusPending && item.Target.NeedsUserConfirmation() {
 		item.Warning = fmt.Sprintf("Setting default for %s may require user confirmation", item.Target.Identifier)
 	}
 

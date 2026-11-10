@@ -40,6 +40,36 @@ func (m *MockBridge) EXPECT() *MockBridgeMockRecorder {
 	return m.recorder
 }
 
+// AppInfoAtPath mocks base method.
+func (m *MockBridge) AppInfoAtPath(path string) (macos.AppInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AppInfoAtPath", path)
+	ret0, _ := ret[0].(macos.AppInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AppInfoAtPath indicates an expected call of AppInfoAtPath.
+func (mr *MockBridgeMockRecorder) AppInfoAtPath(path any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppInfoAtPath", reflect.TypeOf((*MockBridge)(nil).AppInfoAtPath), path)
+}
+
+// ApplicationsForBundleID mocks base method.
+func (m *MockBridge) ApplicationsForBundleID(bundleID string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ApplicationsForBundleID", bundleID)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ApplicationsForBundleID indicates an expected call of ApplicationsForBundleID.
+func (mr *MockBridgeMockRecorder) ApplicationsForBundleID(bundleID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplicationsForBundleID", reflect.TypeOf((*MockBridge)(nil).ApplicationsForBundleID), bundleID)
+}
+
 // GetDefaultAppForScheme mocks base method.
 func (m *MockBridge) GetDefaultAppForScheme(scheme string) (string, error) {
 	m.ctrl.T.Helper()
@@ -159,6 +189,20 @@ func (mr *MockBridgeMockRecorder) PromptsForDefaultAppChanges() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PromptsForDefaultAppChanges", reflect.TypeOf((*MockBridge)(nil).PromptsForDefaultAppChanges))
 }
 
+// RegisterApplication mocks base method.
+func (m *MockBridge) RegisterApplication(path string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterApplication", path)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterApplication indicates an expected call of RegisterApplication.
+func (mr *MockBridgeMockRecorder) RegisterApplication(path any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterApplication", reflect.TypeOf((*MockBridge)(nil).RegisterApplication), path)
+}
+
 // ResolveUTIsForExtension mocks base method.
 func (m *MockBridge) ResolveUTIsForExtension(ext string) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -214,4 +258,18 @@ func (m *MockBridge) SetDefaultForUTI(appPath, uti string) error {
 func (mr *MockBridgeMockRecorder) SetDefaultForUTI(appPath, uti any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDefaultForUTI", reflect.TypeOf((*MockBridge)(nil).SetDefaultForUTI), appPath, uti)
+}
+
+// UnregisterApplication mocks base method.
+func (m *MockBridge) UnregisterApplication(path string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnregisterApplication", path)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnregisterApplication indicates an expected call of UnregisterApplication.
+func (mr *MockBridgeMockRecorder) UnregisterApplication(path any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnregisterApplication", reflect.TypeOf((*MockBridge)(nil).UnregisterApplication), path)
 }

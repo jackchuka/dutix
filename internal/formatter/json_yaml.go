@@ -32,11 +32,13 @@ func (f *JSONFormatter) FormatAppDetails(
 	app domain.App,
 	supportedTypes []domain.DocumentType,
 	defaultTypes []domain.DocumentType,
+	copies []domain.AppCopy,
 ) error {
 	data := map[string]any{
-		"app":            app,
-		"supportedTypes": supportedTypes,
-		"defaultTypes":   defaultTypes,
+		"app":              app,
+		"supportedTypes":   supportedTypes,
+		"defaultTypes":     defaultTypes,
+		"registeredCopies": copies,
 	}
 	return f.encodeData(data)
 }
@@ -84,11 +86,13 @@ func (f *YAMLFormatter) FormatAppDetails(
 	app domain.App,
 	supportedTypes []domain.DocumentType,
 	defaultTypes []domain.DocumentType,
+	copies []domain.AppCopy,
 ) error {
 	data := map[string]any{
-		"app":            app,
-		"supportedTypes": supportedTypes,
-		"defaultTypes":   defaultTypes,
+		"app":              app,
+		"supportedTypes":   supportedTypes,
+		"defaultTypes":     defaultTypes,
+		"registeredCopies": copies,
 	}
 	return f.encodeData(data)
 }

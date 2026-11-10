@@ -19,11 +19,26 @@ func NewSetCommand() *cobra.Command {
 	var schemes []string
 	var dryRun bool
 	var skipConfirmation bool
+	var copyOpts shared.CopyOptions
 
 	cmd := &cobra.Command{
-		Use:   "set <app>",
+		Use:   "set <app|bundle-path|bundle-id>",
 		Short: "Set default application for targets",
 		Long: `Sets the default application for specified file extensions, UTIs, or URL schemes.
+
+The application can be given as:
+  - a path to an .app bundle (e.g. ~/Applications/Foo.app);
+    used as-is even if it isn't in /Applications, and registered with
+    LaunchServices before applying
+  - a bundle identifier (e.g. com.microsoft.VSCode)
+  - a name or path substring (e.g. "Visual Studio Code")
+
+macOS stores defaults by bundle ID. When several copies share a bundle ID,
+defaults resolve to the one with the highest CFBundleVersion (then by path).
+Use --prune-others to unregister the other copies, so the chosen one wins.
+
+With --output json or yaml, only a report of the outcome is printed, for
+scripts; this needs --yes or --dry-run.
 
 You can specify targets using:
   --extensions: File extensions (e.g., txt,md,json)
@@ -34,7 +49,10 @@ Examples:
   dutix set "Visual Studio Code" --extensions txt,md,json
   dutix set Safari --schemes http,https
   dutix set TextEdit --extensions txt --dry-run
-  dutix set Finder --extensions zip,tar --yes`,
+  dutix set Finder --extensions zip,tar --yes
+  dutix set com.microsoft.VSCode --extensions md
+  dutix set ~/Applications/Foo.app --extensions md --prune-others --yes
+  dutix --output json set Safari --schemes http --yes`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, err := shared.GetContext(cmd)
@@ -43,6 +61,11 @@ Examples:
 			}
 
 			appName := args[0]
+
+			// JSON and YAML output have no room for the prompt
+			if !ctx.Table() && !skipConfirmation && !dryRun {
+				return fmt.Errorf("--output %s needs --yes or --dry-run", ctx.OutputMode)
+			}
 
 			// Parse target specifications
 			targets, err := shared.ParseTargetSpecs(extensions, utis, schemes)
@@ -55,14 +78,7 @@ Examples:
 			}
 
 			// Find the application
-			apps, err := ctx.Bridge.ListAllApplications()
-			if err != nil {
-				return fmt.Errorf("failed to scan applications: %w", err)
-			}
-			domainApps := domain.FromMacOSAppInfos(apps)
-
-			// Find the application
-			selectedApp, err := domain.FindApp(domainApps, appName)
+			selectedApp, err := domain.ResolveApp(ctx.Bridge, appName)
 			if err != nil {
 				return err
 			}
@@ -76,29 +92,47 @@ Examples:
 				return fmt.Errorf("failed to build plan: %w", err)
 			}
 
-			// Display preview
-			if !ctx.QuietMode {
+			// Display preview. With --yes, the results table follows right
+			// away, so the plan table is only shown for --dry-run or before
+			// the prompt.
+			if ctx.Human() {
+				ctx.Section()
 				fmt.Printf("Application: %s\n", selectedApp.Name)
 				fmt.Printf("Path: %s\n", selectedApp.Path)
-				fmt.Printf("Targets: %d\n\n", len(plan.Items))
-
-				f := formatter.New("table", nil)
-				if err := f.FormatPlan(plan); err != nil {
-					return err
+				if selectedApp.BundleID != "" {
+					fmt.Printf("Bundle ID: %s\n", selectedApp.BundleID)
 				}
-				fmt.Println()
+				if plan.Settled() {
+					fmt.Printf("Targets: %d (all already set)\n", len(plan.Items))
+				} else {
+					fmt.Printf("Targets: %d\n", len(plan.Items))
+					if dryRun || !skipConfirmation {
+						ctx.Section()
+						f := formatter.New("table", nil)
+						if err := f.FormatPlan(plan); err != nil {
+							return err
+						}
+					}
+				}
 			}
 
+			copies := shared.PreviewCopies(ctx, selectedApp, copyOpts)
 			shared.PrintConfirmationNotice(ctx, plan)
 
 			// Dry run - just preview
 			if dryRun {
+				if !ctx.Table() {
+					return copies.PrintReport(shared.PlanResults(plan), true)
+				}
+				ctx.Section()
 				fmt.Println("Dry run - no changes made.")
 				return nil
 			}
 
-			// Confirm unless --yes flag
-			if !skipConfirmation {
+			// Confirm unless --yes flag, or there is nothing to confirm
+			pending, _, _, _ := plan.Stats()
+			if !skipConfirmation && (pending > 0 || copies.WillChange()) {
+				ctx.Section()
 				fmt.Print("Apply these changes? (y/N): ")
 				reader := bufio.NewReader(os.Stdin)
 				response, err := reader.ReadString('\n')
@@ -113,14 +147,17 @@ Examples:
 			}
 
 			// Apply the plan
-			results, err := ctx.Applier.Apply(plan, nil)
+			results, err := copies.Apply(plan)
 			if err != nil {
 				return fmt.Errorf("failed to apply changes: %w", err)
 			}
 
 			// Display results
-			if !ctx.QuietMode {
-				if err := shared.DisplayResults(results); err != nil {
+			if !ctx.Table() {
+				return copies.PrintReport(results, false)
+			}
+			if ctx.Human() {
+				if err := shared.DisplayResults(ctx, results); err != nil {
 					return err
 				}
 			}
@@ -134,6 +171,7 @@ Examples:
 	cmd.Flags().StringSliceVar(&schemes, "schemes", nil, "URL schemes (comma-separated, e.g., http,https)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview changes without applying")
 	cmd.Flags().BoolVar(&skipConfirmation, "yes", false, "Skip confirmation prompt")
+	shared.AddCopyFlags(cmd, &copyOpts)
 
 	return cmd
 }
