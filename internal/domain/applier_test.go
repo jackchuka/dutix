@@ -3,6 +3,7 @@ package domain
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	dmacos "github.com/jackchuka/dutix/internal/macos"
 	macos "github.com/jackchuka/dutix/internal/macos/mock"
@@ -34,6 +35,7 @@ func TestApplier_Apply(t *testing.T) {
 			wantErr:        false,
 			setupMock: func(m *macos.MockBridge) {
 				m.EXPECT().SetDefaultForUTI(VSCodeApp.Path, "public.plain-text").Return(nil)
+				m.EXPECT().GetDefaultAppForUTI("public.plain-text").Return(VSCodeApp.Path, nil)
 			},
 		},
 		{
@@ -52,6 +54,7 @@ func TestApplier_Apply(t *testing.T) {
 			wantErr:        false,
 			setupMock: func(m *macos.MockBridge) {
 				m.EXPECT().SetDefaultForScheme(ChromeApp.Path, "http").Return(nil)
+				m.EXPECT().GetDefaultAppForScheme("http").Return(ChromeApp.Path, nil)
 			},
 		},
 		{
@@ -93,7 +96,9 @@ func TestApplier_Apply(t *testing.T) {
 			wantErr:        false,
 			setupMock: func(m *macos.MockBridge) {
 				m.EXPECT().SetDefaultForUTI(VSCodeApp.Path, "public.plain-text").Return(nil)
+				m.EXPECT().GetDefaultAppForUTI("public.plain-text").Return(VSCodeApp.Path, nil)
 				m.EXPECT().SetDefaultForScheme(ChromeApp.Path, "http").Return(nil)
+				m.EXPECT().GetDefaultAppForScheme("http").Return(ChromeApp.Path, nil)
 			},
 		},
 		{
@@ -185,7 +190,9 @@ func TestApplier_Apply_BridgeIntegration(t *testing.T) {
 
 	// Set up expectations for both calls
 	bridge.EXPECT().SetDefaultForUTI(VSCodeApp.Path, "public.plain-text").Return(nil)
+	bridge.EXPECT().GetDefaultAppForUTI("public.plain-text").Return(VSCodeApp.Path, nil)
 	bridge.EXPECT().SetDefaultForScheme(ChromeApp.Path, "http").Return(nil)
+	bridge.EXPECT().GetDefaultAppForScheme("http").Return(ChromeApp.Path, nil)
 
 	applier := NewApplier(bridge)
 
@@ -227,6 +234,7 @@ func TestApplier_Apply_ContinuesOnFailure(t *testing.T) {
 	// First call will fail, second will succeed
 	bridge.EXPECT().SetDefaultForUTI(VSCodeApp.Path, "public.plain-text").Return(fmt.Errorf("simulated failure"))
 	bridge.EXPECT().SetDefaultForUTI(VSCodeApp.Path, "public.html").Return(nil)
+	bridge.EXPECT().GetDefaultAppForUTI("public.html").Return(VSCodeApp.Path, nil)
 
 	applier := NewApplier(bridge)
 
@@ -356,6 +364,7 @@ func TestApplier_Apply_BatchesExtensionItems(t *testing.T) {
 
 			gomock.InOrder(
 				bridge.EXPECT().SetDefaultForUTI(VSCodeApp.Path, "public.plain-text").Return(nil),
+				bridge.EXPECT().GetDefaultAppForUTI("public.plain-text").Return(VSCodeApp.Path, nil),
 				bridge.EXPECT().SetDefaultForExtensions(VSCodeApp.Path, []string{"tf", "fish", "bat"}).Return(tt.batchErr).Times(1),
 			)
 
@@ -372,6 +381,108 @@ func TestApplier_Apply_BatchesExtensionItems(t *testing.T) {
 			}
 			if len(progressed) != len(plan.Items) {
 				t.Errorf("progress called %d times, want %d", len(progressed), len(plan.Items))
+			}
+		})
+	}
+}
+
+func TestApplier_Apply_Verifies(t *testing.T) {
+	otherCopy := "/Users/someone/Applications/Visual Studio Code.app"
+
+	tests := []struct {
+		name         string
+		setupMock    func(*macos.MockBridge)
+		wantStatus   PlanItemStatus
+		wantVerified bool
+		wantErr      string
+		wantSleeps   int
+	}{
+		{
+			name: "default is the app",
+			setupMock: func(m *macos.MockBridge) {
+				m.EXPECT().GetDefaultAppForUTI("public.plain-text").Return(VSCodeApp.Path, nil)
+			},
+			wantStatus:   StatusSuccess,
+			wantVerified: true,
+		},
+		{
+			name: "default becomes the app after a moment",
+			setupMock: func(m *macos.MockBridge) {
+				gomock.InOrder(
+					m.EXPECT().GetDefaultAppForUTI("public.plain-text").Return(TextEditApp.Path, nil),
+					m.EXPECT().AppInfoAtPath(TextEditApp.Path).Return(dmacos.AppInfo{BundleID: TextEditApp.BundleID}, nil),
+					m.EXPECT().GetDefaultAppForUTI("public.plain-text").Return(VSCodeApp.Path, nil),
+				)
+			},
+			wantStatus:   StatusSuccess,
+			wantVerified: true,
+			wantSleeps:   1,
+		},
+		{
+			name: "default is another copy with the same bundle ID",
+			setupMock: func(m *macos.MockBridge) {
+				m.EXPECT().GetDefaultAppForUTI("public.plain-text").Return(otherCopy, nil)
+				m.EXPECT().AppInfoAtPath(otherCopy).Return(dmacos.AppInfo{BundleID: "com.microsoft.vscode"}, nil)
+			},
+			wantStatus:   StatusSuccess,
+			wantVerified: true,
+		},
+		{
+			name: "default stays another app",
+			setupMock: func(m *macos.MockBridge) {
+				m.EXPECT().GetDefaultAppForUTI("public.plain-text").Return(TextEditApp.Path, nil).Times(verifyAttempts)
+				m.EXPECT().AppInfoAtPath(TextEditApp.Path).Return(dmacos.AppInfo{BundleID: TextEditApp.BundleID}, nil).Times(verifyAttempts)
+			},
+			wantStatus: StatusFailed,
+			wantErr:    "applied, but the default is still /Applications/TextEdit.app",
+			wantSleeps: verifyAttempts - 1,
+		},
+		{
+			name: "default cannot be read",
+			setupMock: func(m *macos.MockBridge) {
+				m.EXPECT().GetDefaultAppForUTI("public.plain-text").Return("", fmt.Errorf("no default")).Times(verifyAttempts)
+			},
+			wantStatus: StatusFailed,
+			wantErr:    "applied, but could not read the default back: no default",
+			wantSleeps: verifyAttempts - 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			bridge := macos.NewMockBridge(ctrl)
+			bridge.EXPECT().SetDefaultForUTI(VSCodeApp.Path, "public.plain-text").Return(nil)
+			tt.setupMock(bridge)
+
+			applier := NewApplier(bridge)
+			sleeps := 0
+			applier.sleep = func(time.Duration) { sleeps++ }
+
+			plan := &Plan{Items: []PlanItem{{Target: PlainTextUTITarget, DesiredApp: VSCodeApp, Status: StatusPending}}}
+			results, err := applier.Apply(plan, nil)
+			if err != nil {
+				t.Fatalf("Apply() error = %v", err)
+			}
+
+			got := results[0]
+			if !got.Applied {
+				t.Error("Applied = false, want true")
+			}
+			if got.Item.Status != tt.wantStatus {
+				t.Errorf("Status = %s, want %s", got.Item.Status, tt.wantStatus)
+			}
+			if got.Verified != tt.wantVerified {
+				t.Errorf("Verified = %v, want %v", got.Verified, tt.wantVerified)
+			}
+			if tt.wantErr == "" && got.Error != nil {
+				t.Errorf("Error = %v, want nil", got.Error)
+			}
+			if tt.wantErr != "" && (got.Error == nil || got.Error.Error() != tt.wantErr) {
+				t.Errorf("Error = %v, want %q", got.Error, tt.wantErr)
+			}
+			if sleeps != tt.wantSleeps {
+				t.Errorf("slept %d times, want %d", sleeps, tt.wantSleeps)
 			}
 		})
 	}

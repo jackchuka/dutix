@@ -3,6 +3,8 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/jackchuka/dutix/internal/logger"
 	"github.com/jackchuka/dutix/internal/macos"
@@ -11,15 +13,24 @@ import (
 // ProgressCallback is called before processing each item
 type ProgressCallback func(index int, item PlanItem)
 
+// verifyAttempts and verifyInterval bound how long the applier waits for a
+// change to become visible in LaunchServices
+const (
+	verifyAttempts = 10
+	verifyInterval = 100 * time.Millisecond
+)
+
 // Applier is responsible for executing plans
 type Applier struct {
 	bridge macos.Bridge
+	sleep  func(time.Duration)
 }
 
 // NewApplier creates a new applier
 func NewApplier(bridge macos.Bridge) *Applier {
 	return &Applier{
 		bridge: bridge,
+		sleep:  time.Sleep,
 	}
 }
 
@@ -30,6 +41,7 @@ func NewApplier(bridge macos.Bridge) *Applier {
 //   - Set extension-keyed items in one batch per app after the others, since
 //     each batch restarts lsd and repeated restarts are throttled
 //   - Call progress callback before each item
+//   - Read each default back after setting it and fail the item if it differs
 //   - Continue on failures (don't fail fast)
 //   - Capture detailed results for each item
 func (a *Applier) Apply(plan *Plan, progress ProgressCallback) ([]ApplyResult, error) {
@@ -92,7 +104,9 @@ func (a *Applier) applyExtensionBatch(plan *Plan, appPath string, indexes []int,
 			result.Notes = fmt.Sprintf("Failed to apply: %v", err)
 			logger.Error("Failed to apply item", err, "extension", plan.Items[i].Target.Extension, "app", appPath)
 		} else {
+			// The bridge waits until LaunchServices resolves each extension to the app
 			result.Applied = true
+			result.Verified = true
 			result.Item.Status = StatusSuccess
 			result.Notes = "Applied successfully"
 		}
@@ -108,11 +122,7 @@ func (a *Applier) applyItem(item PlanItem) ApplyResult {
 		"app", item.DesiredApp,
 	)
 
-	result := ApplyResult{
-		Item:     item,
-		Applied:  false,
-		Verified: false,
-	}
+	result := ApplyResult{Item: item}
 
 	// Skip if already skipped
 	if item.Status == StatusSkipped {
@@ -172,8 +182,21 @@ func (a *Applier) applyItem(item PlanItem) ApplyResult {
 		return result
 	}
 
-	// Success
 	result.Applied = true
+
+	if err := a.verify(item); err != nil {
+		result.Error = err
+		result.Item.Status = StatusFailed
+		result.Notes = err.Error()
+		logger.Error("Applied item did not take effect", err,
+			"kind", item.Target.Kind,
+			"identifier", item.Target.Identifier,
+			"app", item.DesiredApp.Path,
+		)
+		return result
+	}
+
+	result.Verified = true
 	result.Item.Status = StatusSuccess
 	result.Notes = "Applied successfully"
 	logger.Info("Item applied successfully",
@@ -182,4 +205,58 @@ func (a *Applier) applyItem(item PlanItem) ApplyResult {
 	)
 
 	return result
+}
+
+// verify reads the default for item's target back from LaunchServices until
+// it is the desired app, retrying briefly since the change can take a moment
+// to become visible. Another copy with the same bundle ID counts: defaults
+// are stored by bundle ID.
+func (a *Applier) verify(item PlanItem) error {
+	desired := item.DesiredApp
+	desiredID := desired.BundleID
+	if desiredID == "" {
+		if info, err := a.bridge.AppInfoAtPath(desired.Path); err == nil {
+			desiredID = info.BundleID
+		}
+	}
+
+	var actual string
+	var err error
+	for attempt := range verifyAttempts {
+		if attempt > 0 {
+			a.sleep(verifyInterval)
+		}
+		actual, err = a.defaultAppPath(item.Target)
+		if err != nil || actual == "" {
+			continue
+		}
+		if actual == desired.Path {
+			return nil
+		}
+		if desiredID != "" {
+			if info, infoErr := a.bridge.AppInfoAtPath(actual); infoErr == nil && strings.EqualFold(info.BundleID, desiredID) {
+				return nil
+			}
+		}
+	}
+
+	if err != nil {
+		return fmt.Errorf("applied, but could not read the default back: %w", err)
+	}
+	if actual == "" {
+		return fmt.Errorf("applied, but %s has no default application", item.Target.Identifier)
+	}
+	return fmt.Errorf("applied, but the default is still %s", actual)
+}
+
+// defaultAppPath returns the path of the current default app for target
+func (a *Applier) defaultAppPath(target Target) (string, error) {
+	switch target.Kind {
+	case TargetKindUTI:
+		return a.bridge.GetDefaultAppForUTI(target.Identifier)
+	case TargetKindScheme:
+		return a.bridge.GetDefaultAppForScheme(target.Identifier)
+	default:
+		return "", fmt.Errorf("unsupported target kind: %s", target.Kind)
+	}
 }

@@ -91,6 +91,9 @@ func TestResolveApp_Paths(t *testing.T) {
 				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
 					t.Fatalf("ResolveApp(%q) error = %v, want containing %q", tt.query, err, tt.wantErr)
 				}
+				if strings.HasPrefix(tt.name, "missing") && (!errors.Is(err, ErrAppNotFound) || !errors.Is(err, os.ErrNotExist)) {
+					t.Errorf("ResolveApp(%q) error = %v, want wrapping ErrAppNotFound and os.ErrNotExist", tt.query, err)
+				}
 				return
 			}
 			if err != nil {
@@ -199,7 +202,7 @@ func TestResolveApp_BundleID(t *testing.T) {
 		m.EXPECT().ApplicationsForBundleID("com.example.nothing").Return(nil, nil)
 		m.EXPECT().ListAllApplications().Return(scan, nil)
 
-		if _, err := ResolveApp(m, "com.example.nothing"); err == nil || !strings.Contains(err.Error(), "application not found") {
+		if _, err := ResolveApp(m, "com.example.nothing"); !errors.Is(err, ErrAppNotFound) {
 			t.Fatalf("error = %v, want not found", err)
 		}
 	})
@@ -217,11 +220,12 @@ func TestResolveApp_Name(t *testing.T) {
 		query    string
 		wantPath string
 		wantErr  string
+		wantIs   error
 	}{
 		{query: "textedit", wantPath: "/System/Applications/TextEdit.app"},
 		{query: "visual studio code", wantPath: "/Applications/Visual Studio Code.app"},
-		{query: "Code", wantErr: "multiple applications found"},
-		{query: "Nope", wantErr: "application not found"},
+		{query: "Code", wantErr: "multiple applications found matching: Code", wantIs: ErrAmbiguousApp},
+		{query: "Nope", wantErr: "application not found: Nope", wantIs: ErrAppNotFound},
 	}
 	for _, tt := range tests {
 		t.Run(tt.query, func(t *testing.T) {
@@ -231,8 +235,8 @@ func TestResolveApp_Name(t *testing.T) {
 
 			app, err := ResolveApp(m, tt.query)
 			if tt.wantErr != "" {
-				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
-					t.Fatalf("error = %v, want %q", err, tt.wantErr)
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) || !errors.Is(err, tt.wantIs) {
+					t.Fatalf("error = %v, want %q wrapping %v", err, tt.wantErr, tt.wantIs)
 				}
 				return
 			}

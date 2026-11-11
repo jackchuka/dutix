@@ -334,6 +334,17 @@ Structured YAML output:
 dutix apps show "Visual Studio Code" --output yaml
 ```
 
+## Exit Codes
+
+| Code | Meaning                                                                     |
+| ---- | --------------------------------------------------------------------------- |
+| `0`  | Success, including changes declined in the confirmation dialog              |
+| `1`  | Other error                                                                 |
+| `2`  | Invalid arguments or flags                                                  |
+| `3`  | No application matches the argument                                         |
+| `4`  | Several applications match the argument                                     |
+| `5`  | Some changes failed to apply or did not take effect (`set`, `apps migrate`) |
+
 ## Development
 
 ### Project Structure
@@ -371,11 +382,12 @@ go generate ./...
 
 dutix relies on [macos-apphandlers-bridge](https://github.com/jackchuka/macos-apphandlers-bridge) to interface with macOS AppKit APIs for querying and setting default application handlers.
 
-The tool uses a three-phase approach:
+The tool uses a four-phase approach:
 
 1. **Plan** - Resolves targets and queries current defaults
 2. **Preview** - Shows what will change before applying
 3. **Apply** - Makes the changes to system defaults
+4. **Verify** - Reads each default back and reports the item as failed if macOS did not apply it
 
 ## Known Limitations
 
