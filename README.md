@@ -453,6 +453,8 @@ dutix/
 │   └── macos/          # macOS bridge layer
 ```
 
+All macOS access goes through [macos-apphandlers-bridge](https://github.com/jackchuka/macos-apphandlers-bridge); see [AGENTS.md](AGENTS.md) for the layering rules.
+
 ### Build Commands
 
 ```bash
@@ -498,7 +500,7 @@ The tool uses a four-phase approach:
 
 ## Contributing
 
-Contributions welcome! See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for development guidelines.
+Contributions welcome! See [AGENTS.md](AGENTS.md) for the architecture and development guidelines.
 
 ## Credits
 
