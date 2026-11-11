@@ -371,11 +371,12 @@ go generate ./...
 
 dutix relies on [macos-apphandlers-bridge](https://github.com/jackchuka/macos-apphandlers-bridge) to interface with macOS AppKit APIs for querying and setting default application handlers.
 
-The tool uses a three-phase approach:
+The tool uses a four-phase approach:
 
 1. **Plan** - Resolves targets and queries current defaults
 2. **Preview** - Shows what will change before applying
 3. **Apply** - Makes the changes to system defaults
+4. **Verify** - Reads each default back and reports the item as failed if macOS did not apply it
 
 ## Known Limitations
 

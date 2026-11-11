@@ -182,6 +182,7 @@ type ReportItem struct {
 	Current   string         `yaml:"current,omitempty" json:"current,omitempty"` // Path of the default app before applying
 	Status    PlanItemStatus `yaml:"status" json:"status"`
 	Declined  bool           `yaml:"declined,omitempty" json:"declined,omitempty"` // The user kept the current app in the confirmation dialog
+	Verified  bool           `yaml:"verified,omitempty" json:"verified,omitempty"` // The default was read back as the app after applying
 	Warning   string         `yaml:"warning,omitempty" json:"warning,omitempty"`
 	Error     string         `yaml:"error,omitempty" json:"error,omitempty"`
 }
@@ -196,6 +197,7 @@ func NewReport(app *App, results []ApplyResult, dryRun bool) Report {
 			Extension: res.Item.Target.Extension,
 			Status:    res.Item.Status,
 			Declined:  res.Declined,
+			Verified:  res.Verified,
 			Warning:   res.Item.Warning,
 		}
 		if res.Item.CurrentApp != nil {
