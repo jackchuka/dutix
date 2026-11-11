@@ -23,6 +23,8 @@ func TestRun_UsageErrors(t *testing.T) {
 		{name: "extra argument to a group", args: []string{"apps", "nope"}},
 		{name: "invalid output", args: []string{"--output", "xml", "version"}},
 		{name: "no targets", args: []string{"set", "Safari", "--dry-run"}},
+		{name: "missing defaults file", args: []string{"apply", "/nonexistent/defaults.yaml", "--dry-run"}},
+		{name: "export --all with targets", args: []string{"export", "--all", "--schemes", "http"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

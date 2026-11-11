@@ -273,3 +273,18 @@ func (mr *MockBridgeMockRecorder) UnregisterApplication(path any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnregisterApplication", reflect.TypeOf((*MockBridge)(nil).UnregisterApplication), path)
 }
+
+// UserHandlers mocks base method.
+func (m *MockBridge) UserHandlers() ([]macos.Handler, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UserHandlers")
+	ret0, _ := ret[0].([]macos.Handler)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UserHandlers indicates an expected call of UserHandlers.
+func (mr *MockBridgeMockRecorder) UserHandlers() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserHandlers", reflect.TypeOf((*MockBridge)(nil).UserHandlers))
+}

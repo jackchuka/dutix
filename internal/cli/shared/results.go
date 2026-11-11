@@ -7,10 +7,10 @@ import (
 	"github.com/jackchuka/dutix/internal/formatter"
 )
 
-// DisplayResults shows apply results in table format with summary. It prints
-// nothing when no item was changed, declined or warned about, since the
-// preview already said there was nothing to change.
-func DisplayResults(ctx *Context, results []domain.ApplyResult) error {
+// DisplayResults shows apply results in table format with summary, under
+// title. It prints nothing when no item was changed, declined or warned
+// about, since the preview already said there was nothing to change.
+func DisplayResults(ctx *Context, title string, results []domain.ApplyResult) error {
 	// Build results table
 	resultPlan := &domain.Plan{Items: make([]domain.PlanItem, len(results))}
 	declined := false
@@ -27,7 +27,7 @@ func DisplayResults(ctx *Context, results []domain.ApplyResult) error {
 	}
 
 	ctx.Section()
-	fmt.Println("Results:")
+	fmt.Println(title)
 
 	f := formatter.NewTable(nil)
 	if err := f.FormatPlan(resultPlan); err != nil {

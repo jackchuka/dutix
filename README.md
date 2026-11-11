@@ -12,6 +12,7 @@
 
 - 🎯 Set default applications for file extensions, UTIs, and URL schemes
 - 🔄 Migrate all file associations from one app to another
+- 📦 Export your defaults to a file and apply it on another Mac (e.g. from dotfiles)
 - 📋 List and inspect installed applications and their capabilities
 - 🔍 Query current default handlers for any file type or URL scheme
 - 🛡️ Safe operations with preview, confirmation, and dry-run modes
@@ -209,6 +210,59 @@ dutix targets list txt
 dutix targets list --output json --quiet
 ```
 
+#### `dutix export [flags]`
+
+Write the current default applications as a defaults file to stdout, for `dutix apply` to restore.
+
+Without target flags, it exports the defaults you chose: the overrides stored in LaunchServices, as set in Finder ("Change All"), System Settings, or dutix. URL schemes and UTIs that only one installed app can handle are left out, since apps claim those for themselves. Overrides for apps that aren't installed are left out too.
+
+**Flags:**
+
+- `--extensions`, `--utis`, `--schemes` - Export the current default of these targets instead
+- `--all` - Include URL schemes and UTIs that only one installed app can handle
+
+**Examples:**
+
+```bash
+# Save your defaults
+dutix export > defaults.yaml
+
+# Current defaults of specific targets
+dutix export --extensions md,txt --schemes http,https
+```
+
+The file lists apps by bundle ID, with their names as comments:
+
+```yaml
+version: 1
+defaults:
+  com.google.Chrome: # Google Chrome
+    utis: [public.html]
+    schemes: [http, https]
+  com.microsoft.VSCode: # Visual Studio Code
+    extensions: [md, tf]
+```
+
+Apps can also be given by bundle path or name, as on the command line. A target can be listed under one app only.
+
+#### `dutix apply <file> [flags]`
+
+Set the default applications listed in a defaults file. Use `-` to read it from stdin.
+
+Targets that already have the right default are skipped, so applying the same file again changes nothing. Apps that aren't installed are skipped with a warning. If an app name matches several apps, or the file is invalid, nothing is changed.
+
+**Flags:**
+
+- `--dry-run` - Preview changes without applying
+- `--yes` - Skip confirmation prompt
+
+**Examples:**
+
+```bash
+dutix apply defaults.yaml --dry-run
+dutix apply defaults.yaml --yes
+```
+
 #### `dutix version`
 
 Display version information including git commit and build date.
@@ -218,6 +272,16 @@ dutix version
 ```
 
 ## Common Use Cases
+
+### Keeping Defaults in Dotfiles
+
+```bash
+# Once, on your current Mac
+dutix export > ~/dotfiles/default-apps.yaml
+
+# In your setup script on a new Mac, after installing the apps
+dutix apply ~/dotfiles/default-apps.yaml --yes
+```
 
 ### Setting Up a New Code Editor
 
