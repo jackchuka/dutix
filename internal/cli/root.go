@@ -108,6 +108,8 @@ for file types, UTIs, and URL schemes on macOS.`,
 	rootCmd.AddCommand(apps.NewCommand())
 	rootCmd.AddCommand(targets.NewCommand())
 	rootCmd.AddCommand(NewSetCommand())
+	rootCmd.AddCommand(NewExportCommand())
+	rootCmd.AddCommand(NewApplyCommand())
 	rootCmd.AddCommand(NewVersionCommand())
 
 	rootCmd.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {

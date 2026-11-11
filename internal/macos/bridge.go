@@ -17,6 +17,24 @@ type AppInfo struct {
 	Version  string // CFBundleVersion; only filled by AppInfoAtPath
 }
 
+// HandlerKind is what a LaunchServices handler override applies to
+type HandlerKind string
+
+const (
+	HandlerUTI       HandlerKind = "uti"
+	HandlerExtension HandlerKind = "extension"
+	HandlerScheme    HandlerKind = "scheme"
+)
+
+// Handler is a default application override stored in the LaunchServices
+// preferences, as written by Finder's "Change All", System Settings, apps
+// claiming a URL scheme, and dutix
+type Handler struct {
+	Kind       HandlerKind
+	Identifier string
+	BundleID   string // As stored, usually lowercase
+}
+
 type DocumentType struct {
 	Name       string
 	UTIs       []string
@@ -65,6 +83,10 @@ type Bridge interface {
 	RegisterApplication(path string) error
 	// UnregisterApplication removes an application bundle from LaunchServices
 	UnregisterApplication(path string) error
+
+	// UserHandlers lists the default application overrides in the
+	// LaunchServices preferences that apply to every role
+	UserHandlers() ([]Handler, error)
 }
 
 // ErrUserDeclined means the user kept the current application in the macOS
@@ -240,4 +262,32 @@ func (c *bridge) RegisterApplication(path string) error {
 // database, so it no longer competes with other copies of the same bundle ID
 func (c *bridge) UnregisterApplication(path string) error {
 	return handler.UnregisterApp(path)
+}
+
+// UserHandlers lists the overrides in the LaunchServices preferences that
+// apply to every role
+func (c *bridge) UserHandlers() ([]Handler, error) {
+	overrides, err := handler.ListHandlerOverrides()
+	if err != nil {
+		return nil, err
+	}
+	var handlers []Handler
+	for _, o := range overrides {
+		if o.RoleAll == "" {
+			continue
+		}
+		h := Handler{Identifier: o.Identifier, BundleID: o.RoleAll}
+		switch o.Kind {
+		case handler.HandlerUTI:
+			h.Kind = HandlerUTI
+		case handler.HandlerExtension:
+			h.Kind = HandlerExtension
+		case handler.HandlerURLScheme:
+			h.Kind = HandlerScheme
+		default:
+			continue
+		}
+		handlers = append(handlers, h)
+	}
+	return handlers, nil
 }

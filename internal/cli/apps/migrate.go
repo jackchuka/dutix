@@ -179,7 +179,7 @@ Examples:
 			if !ctx.Table() {
 				copies.SetReport(results, false)
 			} else if ctx.Human() {
-				if err := shared.DisplayResults(ctx, results); err != nil {
+				if err := shared.DisplayResults(ctx, "Results:", results); err != nil {
 					return err
 				}
 			}
