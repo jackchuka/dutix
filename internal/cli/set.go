@@ -64,17 +64,13 @@ Examples:
 
 			// JSON and YAML output have no room for the prompt
 			if !ctx.Table() && !skipConfirmation && !dryRun {
-				return fmt.Errorf("--output %s needs --yes or --dry-run", ctx.OutputMode)
+				return shared.Usagef("--output %s needs --yes or --dry-run", ctx.OutputMode)
 			}
 
 			// Parse target specifications
 			targets, err := shared.ParseTargetSpecs(extensions, utis, schemes)
 			if err != nil {
 				return err
-			}
-
-			if len(targets) == 0 {
-				return fmt.Errorf("no targets specified: use --extensions, --utis, or --schemes")
 			}
 
 			// Find the application
@@ -154,15 +150,16 @@ Examples:
 
 			// Display results
 			if !ctx.Table() {
-				return copies.PrintReport(results, false)
-			}
-			if ctx.Human() {
+				if err := copies.PrintReport(results, false); err != nil {
+					return err
+				}
+			} else if ctx.Human() {
 				if err := shared.DisplayResults(ctx, results); err != nil {
 					return err
 				}
 			}
 
-			return nil
+			return shared.CheckResults(results)
 		},
 	}
 

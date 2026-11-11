@@ -1,7 +1,6 @@
 package shared
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/jackchuka/dutix/internal/domain"
@@ -46,7 +45,7 @@ func ParseTargetSpecs(extensions, utis, schemes []string) ([]domain.Target, erro
 	}
 
 	if len(targets) == 0 {
-		return nil, fmt.Errorf("no targets specified")
+		return nil, Usagef("no targets specified: use --extensions, --utis, or --schemes")
 	}
 
 	return targets, nil

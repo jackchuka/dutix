@@ -1,10 +1,18 @@
 package domain
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/jackchuka/dutix/internal/macos"
+)
+
+var (
+	// ErrAppNotFound means no application matches the argument
+	ErrAppNotFound = errors.New("application not found")
+	// ErrAmbiguousApp means several applications match the argument
+	ErrAmbiguousApp = errors.New("multiple applications found")
 )
 
 // FromMacOSAppInfos converts macOS AppInfo to domain App
@@ -60,7 +68,7 @@ func FindApp(apps []App, query string) (*App, error) {
 	filtered := FilterApps(apps, query)
 
 	if len(filtered) == 0 {
-		return nil, fmt.Errorf("application not found: %s", query)
+		return nil, fmt.Errorf("%w: %s", ErrAppNotFound, query)
 	}
 
 	if len(filtered) == 1 {
@@ -80,5 +88,5 @@ func FindApp(apps []App, query string) (*App, error) {
 	for _, app := range filtered {
 		names = append(names, app.Name)
 	}
-	return nil, fmt.Errorf("multiple applications found matching: %s.\nMatches: %s", query, strings.Join(names, ", "))
+	return nil, fmt.Errorf("%w matching: %s.\nMatches: %s", ErrAmbiguousApp, query, strings.Join(names, ", "))
 }

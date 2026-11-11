@@ -334,6 +334,17 @@ Structured YAML output:
 dutix apps show "Visual Studio Code" --output yaml
 ```
 
+## Exit Codes
+
+| Code | Meaning                                                                     |
+| ---- | --------------------------------------------------------------------------- |
+| `0`  | Success, including changes declined in the confirmation dialog              |
+| `1`  | Other error                                                                 |
+| `2`  | Invalid arguments or flags                                                  |
+| `3`  | No application matches the argument                                         |
+| `4`  | Several applications match the argument                                     |
+| `5`  | Some changes failed to apply or did not take effect (`set`, `apps migrate`) |
+
 ## Development
 
 ### Project Structure

@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackchuka/dutix/internal/cli/apps"
 	"github.com/jackchuka/dutix/internal/cli/shared"
@@ -27,6 +28,12 @@ for file types, UTIs, and URL schemes on macOS.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			switch strings.ToLower(outputMode) {
+			case "table", "json", "yaml":
+			default:
+				return shared.Usagef("invalid --output %q: use table, json, or yaml", outputMode)
+			}
+
 			// Initialize logger
 			if err := logger.Init(debugMode); err != nil {
 				return fmt.Errorf("failed to initialize logger: %w", err)
@@ -64,5 +71,41 @@ for file types, UTIs, and URL schemes on macOS.`,
 	rootCmd.AddCommand(NewSetCommand())
 	rootCmd.AddCommand(NewVersionCommand())
 
+	rootCmd.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
+		return &shared.UsageError{Err: err}
+	})
+	markArgErrorsAsUsage(rootCmd)
+
 	return rootCmd
+}
+
+// markArgErrorsAsUsage makes argument validation errors of cmd and its
+// subcommands UsageErrors. Commands without an Args validator get NoArgs, and
+// command groups print their help when run, so an unknown subcommand is
+// reported the same way: cobra skips argument validation for commands that
+// can't run.
+func markArgErrorsAsUsage(cmd *cobra.Command) {
+	if !cmd.Runnable() {
+		cmd.RunE = func(c *cobra.Command, _ []string) error {
+			return c.Help()
+		}
+	}
+	validate := cmd.Args
+	if validate == nil {
+		validate = cobra.NoArgs
+	}
+	cmd.Args = func(c *cobra.Command, args []string) error {
+		if err := validate(c, args); err != nil {
+			return &shared.UsageError{Err: err}
+		}
+		return nil
+	}
+	for _, sub := range cmd.Commands() {
+		markArgErrorsAsUsage(sub)
+	}
+}
+
+// ExitCode returns the process exit code for an error returned by Execute
+func ExitCode(err error) int {
+	return shared.ExitCode(err)
 }

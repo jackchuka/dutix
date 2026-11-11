@@ -9,12 +9,15 @@ import (
 )
 
 func main() {
-	// Ensure logger is always closed, even on errors
+	os.Exit(run())
+}
+
+func run() int {
 	defer logger.Close()
 
-	rootCmd := cli.NewRootCommand()
-	if err := rootCmd.Execute(); err != nil {
+	if err := cli.NewRootCommand().Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+		return cli.ExitCode(err)
 	}
+	return 0
 }

@@ -135,7 +135,7 @@ func resolveAppPath(b macos.Bridge, query string) (*App, error) {
 	path, err := expandPath(query)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("application not found at %s: %w", query, os.ErrNotExist)
+			return nil, fmt.Errorf("%w at %s: %w", ErrAppNotFound, query, os.ErrNotExist)
 		}
 		return nil, fmt.Errorf("invalid application path %s: %w", query, err)
 	}
