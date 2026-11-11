@@ -25,12 +25,34 @@ type Context struct {
 	QuietMode  bool
 	OutputMode string
 
+	// Result receives the data for the JSON or YAML output
+	Result *Result
+
 	started bool // Some output was printed, so the next section needs a gap
 }
 
 // Table reports whether output is human-readable rather than JSON or YAML
 func (c *Context) Table() bool {
 	return formatter.IsTable(c.OutputMode)
+}
+
+// Result holds the data a command produced for the JSON or YAML envelope
+type Result struct {
+	Data any
+}
+
+// Formatter returns the formatter for the output mode: tables on stdout, or
+// data for the envelope
+func (c *Context) Formatter() formatter.Formatter {
+	if c.Table() {
+		return formatter.NewTable(nil)
+	}
+	return formatter.NewData(c.SetData)
+}
+
+// SetData sets the data for the JSON or YAML envelope
+func (c *Context) SetData(data any) {
+	c.Result.Data = data
 }
 
 // Human reports whether to print human-readable messages: output is a table

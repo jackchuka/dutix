@@ -323,12 +323,41 @@ Machine-parseable JSON output:
 
 ```bash
 dutix apps list --output json
-dutix targets show txt --output json | jq '.defaultApp'
+dutix targets show txt --output json | jq -r '.data.default_app'
 ```
+
+Every command prints one document to stdout: the command's `data`, an `error`, or both (for example, a `set` report in which some items failed). Keys are snake_case, and `api_version` changes only when the schema changes incompatibly. Errors are also printed to stderr.
+
+```json
+{
+  "api_version": 1,
+  "command": "targets show",
+  "data": {
+    "target": { "kind": "extension", "identifier": "txt" },
+    "default_app": "/System/Applications/TextEdit.app",
+    "resolved_utis": ["public.plain-text"],
+    "available_apps": ["/System/Applications/TextEdit.app"]
+  }
+}
+```
+
+```json
+{
+  "api_version": 1,
+  "command": "apps show",
+  "error": {
+    "code": "not_found",
+    "exit_code": 3,
+    "message": "application not found: Foo"
+  }
+}
+```
+
+`error.code` is one of `error`, `usage`, `not_found`, `ambiguous`, or `apply_failed`, matching the [exit code](#exit-codes).
 
 ### YAML
 
-Structured YAML output:
+Structured YAML output, with the same document as JSON:
 
 ```bash
 dutix apps show "Visual Studio Code" --output yaml

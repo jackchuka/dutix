@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackchuka/dutix/internal/domain"
+	"github.com/jackchuka/dutix/internal/formatter"
 )
 
 // Exit codes, so scripts can tell why a command failed
@@ -64,4 +65,19 @@ func ExitCode(err error) int {
 	default:
 		return ExitError
 	}
+}
+
+// errorCodes names each exit code in the error of the JSON or YAML output
+var errorCodes = map[int]string{
+	ExitError:       "error",
+	ExitUsage:       "usage",
+	ExitNotFound:    "not_found",
+	ExitAmbiguous:   "ambiguous",
+	ExitApplyFailed: "apply_failed",
+}
+
+// ErrorInfo describes err for the JSON or YAML output
+func ErrorInfo(err error) *formatter.ErrorInfo {
+	code := ExitCode(err)
+	return &formatter.ErrorInfo{Code: errorCodes[code], ExitCode: code, Message: err.Error()}
 }

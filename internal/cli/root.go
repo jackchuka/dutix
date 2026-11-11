@@ -3,19 +3,57 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/jackchuka/dutix/internal/cli/apps"
 	"github.com/jackchuka/dutix/internal/cli/shared"
 	"github.com/jackchuka/dutix/internal/cli/targets"
 	"github.com/jackchuka/dutix/internal/domain"
+	"github.com/jackchuka/dutix/internal/formatter"
 	"github.com/jackchuka/dutix/internal/logger"
 	"github.com/jackchuka/dutix/internal/macos"
 	"github.com/spf13/cobra"
 )
 
-// NewRootCommand creates the root cobra command for dutix
-func NewRootCommand() *cobra.Command {
+// Run runs dutix with args and returns the exit code. With --output json or
+// yaml, it prints one envelope to stdout holding the command's data, its
+// error, or both; errors also go to stderr.
+func Run(args []string, stdout, stderr io.Writer) int {
+	result := &shared.Result{}
+	root := newRootCommand(result)
+	root.SetArgs(args)
+	root.SetOut(stdout)
+	root.SetErr(stderr)
+
+	cmd, err := root.ExecuteC()
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "Error: %v\n", err)
+	}
+
+	output, _ := root.PersistentFlags().GetString("output")
+	if formatter.IsTable(output) || (err == nil && result.Data == nil) {
+		return shared.ExitCode(err)
+	}
+
+	env := formatter.Envelope{
+		APIVersion: formatter.APIVersion,
+		Command:    strings.TrimSpace(strings.TrimPrefix(cmd.CommandPath(), root.Name())),
+		Data:       result.Data,
+	}
+	if err != nil {
+		env.Error = shared.ErrorInfo(err)
+	}
+	if werr := formatter.WriteEnvelope(output, stdout, env); werr != nil {
+		_, _ = fmt.Fprintf(stderr, "Error: %v\n", werr)
+		if err == nil {
+			return shared.ExitError
+		}
+	}
+	return shared.ExitCode(err)
+}
+
+func newRootCommand(result *shared.Result) *cobra.Command {
 	var debugMode bool
 	var quietMode bool
 	var outputMode string
@@ -44,7 +82,8 @@ for file types, UTIs, and URL schemes on macOS.`,
 				Bridge:     macos.NewBridge(),
 				DebugMode:  debugMode,
 				QuietMode:  quietMode,
-				OutputMode: outputMode,
+				OutputMode: strings.ToLower(outputMode),
+				Result:     result,
 			}
 			ctx.Planner = domain.NewPlanner(ctx.Bridge)
 			ctx.Applier = domain.NewApplier(ctx.Bridge)
@@ -103,9 +142,4 @@ func markArgErrorsAsUsage(cmd *cobra.Command) {
 	for _, sub := range cmd.Commands() {
 		markArgErrorsAsUsage(sub)
 	}
-}
-
-// ExitCode returns the process exit code for an error returned by Execute
-func ExitCode(err error) int {
-	return shared.ExitCode(err)
 }

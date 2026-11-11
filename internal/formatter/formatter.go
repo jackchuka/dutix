@@ -2,7 +2,6 @@ package formatter
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -82,10 +81,10 @@ func (t trimWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// Formatter defines the interface for output formatting
+// Formatter formats a command's output as a table or as data for the
+// JSON or YAML envelope
 type Formatter interface {
 	FormatApps(apps []domain.App) error
-	FormatPlan(plan *domain.Plan) error
 	FormatAppDetails(
 		app domain.App,
 		supportedTypes []domain.DocumentType,
@@ -101,45 +100,15 @@ type Formatter interface {
 	FormatExtensionDefaults(rows []domain.ExtensionDefault) error
 }
 
-// IsTable reports whether format is the human-readable table format, which is
-// also the fallback for unknown formats
+// IsTable reports whether format is the human-readable table format
 func IsTable(format string) bool {
-	switch strings.ToLower(format) {
-	case "json", "yaml":
-		return false
-	default:
-		return true
-	}
+	return !strings.EqualFold(format, "json") && !strings.EqualFold(format, "yaml")
 }
 
-// Encode writes data as JSON or YAML, for commands whose output has no table
-// form
-func Encode(format string, w io.Writer, data any) error {
+// NewTable returns a formatter that writes tables to w (stdout if nil)
+func NewTable(w io.Writer) *TableFormatter {
 	if w == nil {
 		w = os.Stdout
 	}
-	switch strings.ToLower(format) {
-	case "json":
-		return (&JSONFormatter{w: w}).encodeData(data)
-	case "yaml":
-		return (&YAMLFormatter{w: w}).encodeData(data)
-	default:
-		return fmt.Errorf("unsupported output format for encoding: %s", format)
-	}
-}
-
-// New creates a formatter based on the specified format type
-func New(format string, w io.Writer) Formatter {
-	if w == nil {
-		w = os.Stdout
-	}
-
-	switch strings.ToLower(format) {
-	case "json":
-		return &JSONFormatter{w: w}
-	case "yaml":
-		return &YAMLFormatter{w: w}
-	default:
-		return &TableFormatter{w: w}
-	}
+	return &TableFormatter{w: w}
 }

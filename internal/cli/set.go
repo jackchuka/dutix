@@ -104,7 +104,7 @@ Examples:
 					fmt.Printf("Targets: %d\n", len(plan.Items))
 					if dryRun || !skipConfirmation {
 						ctx.Section()
-						f := formatter.New("table", nil)
+						f := formatter.NewTable(nil)
 						if err := f.FormatPlan(plan); err != nil {
 							return err
 						}
@@ -118,7 +118,8 @@ Examples:
 			// Dry run - just preview
 			if dryRun {
 				if !ctx.Table() {
-					return copies.PrintReport(shared.PlanResults(plan), true)
+					copies.SetReport(shared.PlanResults(plan), true)
+					return nil
 				}
 				ctx.Section()
 				fmt.Println("Dry run - no changes made.")
@@ -150,9 +151,7 @@ Examples:
 
 			// Display results
 			if !ctx.Table() {
-				if err := copies.PrintReport(results, false); err != nil {
-					return err
-				}
+				copies.SetReport(results, false)
 			} else if ctx.Human() {
 				if err := shared.DisplayResults(ctx, results); err != nil {
 					return err

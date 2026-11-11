@@ -29,7 +29,7 @@ func DisplayResults(ctx *Context, results []domain.ApplyResult) error {
 	ctx.Section()
 	fmt.Println("Results:")
 
-	f := formatter.New("table", nil)
+	f := formatter.NewTable(nil)
 	if err := f.FormatPlan(resultPlan); err != nil {
 		return fmt.Errorf("failed to format results: %w", err)
 	}

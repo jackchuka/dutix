@@ -64,7 +64,8 @@ Examples:
 			// an empty report for JSON or YAML output
 			nothingToMigrate := func(lines ...string) error {
 				if !ctx.Table() {
-					return formatter.Encode(ctx.OutputMode, nil, domain.NewReport(toApp, nil, dryRun))
+					ctx.SetData(domain.NewReport(toApp, nil, dryRun))
+					return nil
 				}
 				if !ctx.QuietMode {
 					for _, line := range lines {
@@ -130,7 +131,7 @@ Examples:
 					fmt.Printf("%s already opens all %d file type(s).\n", toApp.Name, len(plan.Items))
 				} else if dryRun || !skipConfirmation {
 					ctx.Section()
-					f := formatter.New("table", nil)
+					f := formatter.NewTable(nil)
 					if err := f.FormatPlan(plan); err != nil {
 						return err
 					}
@@ -143,7 +144,8 @@ Examples:
 			// Dry run - just preview
 			if dryRun {
 				if !ctx.Table() {
-					return copies.PrintReport(shared.PlanResults(plan), true)
+					copies.SetReport(shared.PlanResults(plan), true)
+					return nil
 				}
 				ctx.Section()
 				fmt.Println("Dry run - no changes made.")
@@ -175,9 +177,7 @@ Examples:
 
 			// Display results
 			if !ctx.Table() {
-				if err := copies.PrintReport(results, false); err != nil {
-					return err
-				}
+				copies.SetReport(results, false)
 			} else if ctx.Human() {
 				if err := shared.DisplayResults(ctx, results); err != nil {
 					return err
