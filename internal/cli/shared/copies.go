@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/jackchuka/dutix/internal/domain"
-	"github.com/jackchuka/dutix/internal/formatter"
 	"github.com/spf13/cobra"
 )
 
@@ -48,9 +47,9 @@ func (c *Copies) Report(results []domain.ApplyResult, dryRun bool) domain.Report
 	return r
 }
 
-// PrintReport prints the report as JSON or YAML
-func (c *Copies) PrintReport(results []domain.ApplyResult, dryRun bool) error {
-	return formatter.Encode(c.ctx.OutputMode, nil, c.Report(results, dryRun))
+// SetReport sets the report as the data for the JSON or YAML output
+func (c *Copies) SetReport(results []domain.ApplyResult, dryRun bool) {
+	c.ctx.SetData(c.Report(results, dryRun))
 }
 
 // PlanResults wraps plan items as results, to report a plan without applying it

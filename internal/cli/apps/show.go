@@ -6,7 +6,6 @@ import (
 
 	"github.com/jackchuka/dutix/internal/cli/shared"
 	"github.com/jackchuka/dutix/internal/domain"
-	"github.com/jackchuka/dutix/internal/formatter"
 	"github.com/spf13/cobra"
 )
 
@@ -67,7 +66,7 @@ Examples:
 			}
 
 			// Display information using formatter
-			f := formatter.New(ctx.OutputMode, nil)
+			f := ctx.Formatter()
 			return f.FormatAppDetails(
 				matchedApp,
 				domain.FromMacOSDocumentTypes(docTypes),

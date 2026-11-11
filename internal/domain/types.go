@@ -23,10 +23,10 @@ const (
 
 // Target represents something that can have a default handler
 type Target struct {
-	Kind         TargetKind `yaml:"kind"`                    // Type of target (UTI, extension, or scheme)
-	Identifier   string     `yaml:"identifier"`              // The actual identifier (e.g., "txt", "public.plain-text", "http")
-	Extension    string     `yaml:"extension,omitempty"`     // Extension provided for display purposes
-	ResolvedUTIs []string   `yaml:"resolved_utis,omitempty"` // For extension targets, the resolved UTI(s)
+	Kind         TargetKind `yaml:"kind" json:"kind"`                                       // Type of target (UTI, extension, or scheme)
+	Identifier   string     `yaml:"identifier" json:"identifier"`                           // The actual identifier (e.g., "txt", "public.plain-text", "http")
+	Extension    string     `yaml:"extension,omitempty" json:"extension,omitempty"`         // Extension provided for display purposes
+	ResolvedUTIs []string   `yaml:"resolved_utis,omitempty" json:"resolved_utis,omitempty"` // For extension targets, the resolved UTI(s)
 }
 
 // App represents an application
@@ -233,9 +233,9 @@ func (p *Plan) HasWarnings() bool {
 }
 
 type DocumentType struct {
-	Name       string   // e.g., "Plain Text Document"
-	UTIs       []string // e.g., ["public.plain-text"]
-	Extensions []string // e.g., ["txt", "text"]
+	Name       string   `yaml:"name" json:"name"`                                 // e.g., "Plain Text Document"
+	UTIs       []string `yaml:"utis,omitempty" json:"utis,omitempty"`             // e.g., ["public.plain-text"]
+	Extensions []string `yaml:"extensions,omitempty" json:"extensions,omitempty"` // e.g., ["txt", "text"]
 }
 
 func FromMacOSDocumentTypes(dts []macos.DocumentType) []DocumentType {

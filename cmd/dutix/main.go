@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/jackchuka/dutix/internal/cli"
@@ -14,10 +13,5 @@ func main() {
 
 func run() int {
 	defer logger.Close()
-
-	if err := cli.NewRootCommand().Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		return cli.ExitCode(err)
-	}
-	return 0
+	return cli.Run(os.Args[1:], os.Stdout, os.Stderr)
 }
